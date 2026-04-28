@@ -511,7 +511,8 @@ class TestEdgeCases(unittest.TestCase):
         self.assertGreater(agg["total_word_count"], 0)
 
     def test_max_file_bytes_rejected(self):
-        from lib.io_utils import MAX_FILE_BYTES, load_text as _load
+        from lib.io_utils import MAX_FILE_BYTES
+        from lib.io_utils import load_text as _load
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as fh:
             fh.write(b"x" * (MAX_FILE_BYTES + 1024))
             tmp_path = fh.name
