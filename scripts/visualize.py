@@ -113,9 +113,11 @@ def render_gap(report: dict) -> str:
             out.append(_table(rows, ["pattern", "target", "bench", "Δ"]))
 
     if top_gaps:
-        out.append("\n[Suggested edits — top 3]")
+        out.append("\n[Top 3 actionable edits]")
         for i, g in enumerate(top_gaps[:3], 1):
             out.append(f"  {i}. {g['suggestion']}")
+            if g.get("edit_hint"):
+                out.append(f"     → {g['edit_hint']}")
     return "\n".join(out)
 
 

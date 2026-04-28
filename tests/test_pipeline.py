@@ -134,6 +134,18 @@ class TestDistance(unittest.TestCase):
         zs = [g["abs_z"] for g in gaps["top_gaps"]]
         self.assertEqual(zs, sorted(zs, reverse=True))
 
+    def test_gaps_include_actionable_edit_hints(self):
+        formal = analyze(SAMPLE_FORMAL)
+        target = analyze(TARGET_DRAFT)
+        gaps = compute_gaps(target, formal)
+        # At least the top gap must have direction + a non-empty edit hint.
+        top = gaps["top_gaps"][0]
+        self.assertIn(top["direction"], ("raise", "lower"))
+        self.assertTrue(top["edit_hint"], "top gap should have an edit hint")
+        # Most top-10 gaps should have hints (>=70%)
+        with_hints = sum(1 for g in gaps["top_gaps"] if g.get("edit_hint"))
+        self.assertGreaterEqual(with_hints, 7)
+
 
 class TestEndToEnd(unittest.TestCase):
     def test_full_ingest_and_compare(self):

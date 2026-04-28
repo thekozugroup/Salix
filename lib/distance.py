@@ -104,6 +104,129 @@ def _suggestion(feature: str, target: float, benchmark: float) -> str:
     return f"{direction} {pretty} (target {target:.3f} vs benchmark {benchmark:.3f}, Δ {delta:.3f})"
 
 
+# Concrete edit hints the host model can act on directly. Keyed by
+# (feature_match, direction) where direction is "raise" (target < benchmark)
+# or "lower" (target > benchmark).
+EDIT_HINTS: dict[tuple[str, str], str] = {
+    ("punct_comma_per1k", "raise"):
+        "Add commas around interjections, after introductory phrases, and before "
+        "coordinating conjunctions in compound sentences. Use them to mark "
+        "subordinate clauses and parenthetical asides.",
+    ("punct_comma_per1k", "lower"):
+        "Remove unnecessary commas. Trim parenthetical asides and prefer simpler "
+        "main-clause sentences over those layered with subordinate fragments.",
+    ("punct_semicolon_per1k", "raise"):
+        "Use semicolons to join two related independent clauses where the second "
+        "extends or qualifies the first, in place of a period or 'and'.",
+    ("punct_emdash_per1k", "raise"):
+        "Use em-dashes — like this — to mark sharp asides, abrupt shifts, or "
+        "emphasis. Replace some parenthesis/comma pairs with dashes.",
+    ("punct_question_per1k", "raise"):
+        "Pose more rhetorical questions to the reader; convert some declarative "
+        "statements into interrogative ones.",
+    ("mean_sent_len", "lower"):
+        "Break long sentences at natural pause points (commas, conjunctions). "
+        "Target a mix that averages closer to the benchmark length.",
+    ("mean_sent_len", "raise"):
+        "Combine adjacent short sentences using subordinate clauses, semicolons, "
+        "or coordinating conjunctions. Avoid choppy staccato.",
+    ("stdev_sent_len", "raise"):
+        "Increase variation in sentence length. Place a very short sentence next "
+        "to a much longer one to create rhythm.",
+    ("stdev_sent_len", "lower"):
+        "Even out sentence length. Avoid extreme outliers — split very long "
+        "sentences and pad terse ones with qualifying clauses.",
+    ("short_sent_ratio", "lower"):
+        "Combine or expand sentences shorter than ~8 words.",
+    ("long_sent_ratio", "lower"):
+        "Split sentences longer than ~25 words at clause boundaries.",
+    ("comma_per_sentence", "raise"):
+        "Add subordinate clauses and parenthetical asides set off by commas.",
+    ("comma_per_sentence", "lower"):
+        "Tighten sentences. Drop subordinate asides; prefer simple main clauses.",
+    ("ttr", "raise"):
+        "Vary word choice — replace repeated content words with synonyms; "
+        "introduce more distinct vocabulary.",
+    ("ttr", "lower"):
+        "Reuse key terms instead of seeking synonyms. Repetition is permitted.",
+    ("mean_word_len", "raise"):
+        "Prefer longer, often Latinate words over short Anglo-Saxon ones where "
+        "register permits.",
+    ("mean_word_len", "lower"):
+        "Prefer short, plain Anglo-Saxon words over longer Latinate ones.",
+    ("long_word_ratio", "raise"):
+        "Use more multisyllabic words; lean into precise technical or formal "
+        "vocabulary.",
+    ("long_word_ratio", "lower"):
+        "Replace long words with shorter, more direct alternatives.",
+    ("hedging_rate", "raise"):
+        "Soften absolute claims with hedges: 'perhaps', 'rather', 'somewhat', "
+        "'might', 'seems to', 'tends to'. Avoid declaring certainty.",
+    ("hedging_rate", "lower"):
+        "Strip hedges. Make assertions directly. Cut 'perhaps', 'maybe', "
+        "'somewhat', 'might', 'tends to'.",
+    ("booster_rate", "raise"):
+        "Add emphatic boosters where claims are made: 'clearly', 'indeed', "
+        "'certainly', 'truly', 'definitely'.",
+    ("booster_rate", "lower"):
+        "Remove emphatic boosters. Let claims stand on their substance.",
+    ("discourse_rate", "raise"):
+        "Add explicit discourse markers between sentences: 'however', "
+        "'moreover', 'consequently', 'thus', 'nevertheless'.",
+    ("discourse_rate", "lower"):
+        "Reduce explicit discourse markers. Let logical relations be implicit.",
+    ("formality_f_score", "raise"):
+        "Raise formality: expand contractions, prefer noun phrases over verbs, "
+        "use Latinate vocabulary, reduce first/second-person pronouns, replace "
+        "fillers with precise terms.",
+    ("formality_f_score", "lower"):
+        "Lower formality: use contractions, more first/second-person pronouns, "
+        "shorter Anglo-Saxon words, conversational fillers where natural.",
+    ("passive_per1k", "lower"):
+        "Convert passive constructions to active voice. 'X was done by Y' → "
+        "'Y did X'. Identify the agent and put it first.",
+    ("passive_per1k", "raise"):
+        "Use passive constructions where the agent is unimportant or unknown, "
+        "or where the patient deserves topic position.",
+    ("positive_rate", "raise"):
+        "Increase use of affirming language: 'good', 'strong', 'clear', "
+        "'helpful', 'useful', 'elegant'.",
+    ("positive_rate", "lower"):
+        "Reduce overtly positive evaluative language. Stay more neutral.",
+    ("negative_rate", "lower"):
+        "Soften critical phrasing. Replace 'bad', 'wrong', 'broken' with more "
+        "neutral or hedged alternatives.",
+    ("mean_paragraph_sents", "raise"):
+        "Develop paragraphs further before breaking. Combine short paragraphs "
+        "where they share a single idea.",
+    ("mean_paragraph_sents", "lower"):
+        "Break dense paragraphs into shorter ones. One topic per paragraph.",
+}
+
+
+def _hint_for(feature: str, direction: str) -> str:
+    """Look up a concrete edit hint for a (feature, direction) pair.
+
+    Function-word features (`fw_perhaps_per1k`) are handled by template since
+    there are dozens of them and each maps to the same kind of edit.
+    """
+    key = (feature, direction)
+    if key in EDIT_HINTS:
+        return EDIT_HINTS[key]
+    if feature.startswith("fw_") and feature.endswith("_per1k"):
+        word = feature[len("fw_"):-len("_per1k")]
+        if direction == "raise":
+            return (f"Use the word '{word}' more often where natural — it is a "
+                    f"signature of the benchmark style.")
+        return (f"Use the word '{word}' less often. The benchmark style uses it "
+                f"sparingly.")
+    if feature.startswith("punct_") and feature.endswith("_per1k"):
+        mark = feature[len("punct_"):-len("_per1k")].replace("_", " ")
+        verb = "more" if direction == "raise" else "less"
+        return f"Use the '{mark}' mark {verb} often."
+    return ""
+
+
 def _distribution_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
     """Symmetric distribution distance over n-gram lists. Returns (distance, top_diffs)."""
     t_map = {k: v for k, v in target_pairs}
@@ -144,6 +267,7 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
         cat = _category_for(feature)
         category_totals[cat] = category_totals.get(cat, 0.0) + abs(z)
         category_counts[cat] = category_counts.get(cat, 0) + 1
+        direction = "raise" if t_val < b_val else "lower"
         scalar_gaps.append({
             "feature": feature,
             "category": cat,
@@ -151,7 +275,9 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
             "benchmark": round(float(b_val), 4),
             "z_distance": round(z, 3),
             "abs_z": round(abs(z), 3),
+            "direction": direction,
             "suggestion": _suggestion(feature, float(t_val), float(b_val)),
+            "edit_hint": _hint_for(feature, direction),
         })
 
     # n-gram distribution distances
