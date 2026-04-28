@@ -435,5 +435,43 @@ class TestSimulator(unittest.TestCase):
                        "no_applicable_rule_changed_text"})
 
 
+class TestValidationHarness(unittest.TestCase):
+    """Smoke + threshold tests for the empirical validation harness."""
+
+    def test_attribution_above_chance(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import attribution_check  # type: ignore
+        result = attribution_check(authors=4, docs_per_author=5,
+                                   seed=42, sentences_per_doc=40)
+        chance = 1.0 / 4
+        self.assertGreaterEqual(
+            result["accuracy"], chance + 0.3,
+            f"attribution accuracy {result['accuracy']:.2f} not "
+            f"meaningfully above chance {chance:.2f}",
+        )
+
+    def test_topic_transfer_separates_authors(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import topic_transfer_check  # type: ignore
+        result = topic_transfer_check(authors=4, seed=11, sentences_per_doc=40)
+        self.assertGreater(
+            result["mean_other_author_distance"],
+            result["mean_same_author_distance"],
+            "same-author should be closer than other-author on unseen topic",
+        )
+        self.assertGreaterEqual(result["separation_accuracy"], 0.7)
+
+    def test_stability_drift_bounded(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import stability_check  # type: ignore
+        result = stability_check(seed=3, sentences_per_doc=40)
+        # Drift should be reasonably small — not a hard physical bound but a
+        # sanity check that LOO benchmarks aren't wildly different from full.
+        self.assertLess(result["max_drift"], 1.5)
+
+
 if __name__ == "__main__":
     unittest.main()

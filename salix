@@ -138,6 +138,27 @@ def cmd_benchmark(args):
     return 0
 
 
+def cmd_validate(args):
+    from scripts.validate import (  # type: ignore
+        attribution_check, topic_transfer_check, stability_check, render_report,
+    )
+    print("Running attribution check...")
+    attr = attribution_check(args.authors, args.docs_per_author, args.seed,
+                             args.sentences_per_doc)
+    print("Running topic-transfer check...")
+    tt = topic_transfer_check(args.authors, args.seed, args.sentences_per_doc)
+    print("Running stability check...")
+    stab = stability_check(args.seed, args.sentences_per_doc)
+    report = render_report(attr, tt, stab)
+    print()
+    print(report)
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(report)
+        print(f"Report written to {args.out}")
+    return 0
+
+
 def cmd_simulate(args):
     from scripts.simulate_loop import run_loop  # type: ignore
     bench = _load_bench(args.profile)
@@ -197,6 +218,14 @@ def build_parser() -> argparse.ArgumentParser:
     p_b = sub.add_parser("benchmark", help="Visualize a saved benchmark")
     p_b.add_argument("--profile", default="default")
     p_b.set_defaults(fn=cmd_benchmark)
+
+    p_val = sub.add_parser("validate", help="Run the empirical validation harness")
+    p_val.add_argument("--seed", type=int, default=0)
+    p_val.add_argument("--authors", type=int, default=5)
+    p_val.add_argument("--docs-per-author", type=int, default=6)
+    p_val.add_argument("--sentences-per-doc", type=int, default=60)
+    p_val.add_argument("--out", help="Path to save the report")
+    p_val.set_defaults(fn=cmd_validate)
 
     p_sim = sub.add_parser("simulate", help="Dry-run rewrite loop with rule-based edits")
     p_sim.add_argument("path")
