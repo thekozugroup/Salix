@@ -10,11 +10,14 @@ from __future__ import annotations
 
 import re
 
-# "Pure" hedges — contextual senses dominate the lexical sense.
+# "Pure" hedges — only entries whose hedging sense overwhelmingly dominates
+# the alternative senses. "kind" / "sort" / "rather" removed: their head-noun
+# and emphatic uses ("kind person", "sort the list", "rather than") flip
+# polarity and pollute the rate. "fairly" kept (almost always degree-adverb).
 HEDGES = frozenset([
     "perhaps", "maybe", "possibly", "probably", "presumably", "supposedly",
     "apparently", "seemingly", "ostensibly", "arguably", "allegedly",
-    "somewhat", "fairly", "rather", "kind", "sort",
+    "somewhat", "fairly",
     "approximately", "roughly", "nearly", "almost",
     "tend", "tends", "tended", "tending",
     "suggests", "suggest", "indicates", "indicate", "appears", "appear", "seems", "seem",
@@ -33,13 +36,14 @@ MONTH_NAMES = frozenset([
     "august", "september", "october", "november", "december",
 ])
 
-# Boosters strengthen a claim ("clearly", "definitely")
+# Boosters strengthen a claim ("clearly", "definitely"). "must" excluded —
+# it's a deontic modal whose epistemic sense ("must be") is already counted
+# as a modal hedge in `count_modal_hedges`. "of course" handled as phrase.
 BOOSTERS = frozenset([
     "clearly", "obviously", "definitely", "certainly", "surely",
     "undoubtedly", "absolutely", "completely", "entirely", "totally",
     "really", "very", "highly", "extremely", "deeply", "strongly",
-    "always", "never", "must", "indeed", "truly", "actually",
-    "of course",
+    "always", "never", "indeed", "truly", "actually",
 ])
 
 # Stance / discourse — markers of structured argument
@@ -66,8 +70,9 @@ POSITIVE = frozenset([
     "useful", "helpful", "valuable", "powerful", "strong", "clear",
     "elegant", "robust", "reliable", "efficient", "effective", "smart",
     "thoughtful", "graceful", "clean", "solid", "sturdy", "polished",
-    # Outcome
-    "right", "correct", "accurate", "successful", "succeed", "succeeds",
+    # Outcome — "right" and "correct" excluded: directional ("turn right")
+    # and agreement ("right, ok") senses dominate in conversational prose.
+    "accurate", "successful", "succeed", "succeeds",
     "win", "wins", "won", "achieved", "improve", "improved", "improves",
     "thrive", "thrives", "flourish", "flourishes", "advance", "progress",
 ])

@@ -45,14 +45,53 @@ def _bench_path(name: str) -> Path:
     return BENCH_DIR / f"{name}.json"
 
 
+# Latest benchmark schema version we read. Older files emit a clear error.
+SCHEMA_VERSION = 2
+
+
 def _load_bench(name: str) -> dict:
+    """Load a benchmark JSON, with a small retry on JSONDecodeError to ride
+    out concurrent writes (atomic os.replace makes torn writes impossible,
+    but a competing reader can still observe the moment between unlink and
+    replace on some filesystems). Validates schema_version."""
+    import time
     p = _bench_path(name)
     if not p.exists():
         raise SystemExit(
             f"No benchmark named '{name}' at {p}.\n"
             f"Run `salix ingest --name {name}` after dropping samples in {SAMPLES_DIR}/"
         )
-    return json.loads(p.read_text())
+    last_err = None
+    for attempt in range(3):
+        try:
+            data = json.loads(p.read_text())
+            break
+        except json.JSONDecodeError as e:
+            last_err = e
+            time.sleep(0.05 * (attempt + 1))
+    else:
+        raise SystemExit(
+            f"Benchmark {p} could not be decoded after 3 attempts: {last_err}.\n"
+            "If this is a malformed file, re-run `salix ingest`."
+        )
+    sv = data.get("schema_version", 1)
+    if sv > SCHEMA_VERSION:
+        raise SystemExit(
+            f"Benchmark {p} declares schema_version={sv} but this CLI only "
+            f"supports up to {SCHEMA_VERSION}. Upgrade Salix or use a newer "
+            "benchmark format."
+        )
+    if sv < SCHEMA_VERSION:
+        # v1 benchmarks lack `_sigma` and `_mfw_sigma`. They still load — the
+        # distance code falls back to EXPECTED_SIGMA priors — but warn so the
+        # user knows to re-ingest for full fidelity.
+        import warnings
+        warnings.warn(
+            f"Benchmark {p} is schema_version={sv} (current is {SCHEMA_VERSION}). "
+            "Empirical sigma is unavailable; consider re-ingesting samples.",
+            stacklevel=2,
+        )
+    return data
 
 
 def _list_profiles() -> list[str]:

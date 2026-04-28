@@ -10,24 +10,35 @@ from collections.abc import Iterable
 from .function_words import FUNCTION_WORDS
 from .tone import heylighen_f_score, tone_metrics
 
-# Optional spaCy: if available with a loaded English model, we use real POS
-# counts for the formality F-score. Suffix proxies stay as the deterministic
-# zero-dependency fallback.
-try:
-    import spacy as _spacy
+# Optional spaCy: lazily loaded on first call so importing lib.stats stays
+# fast (no 200-500 ms model-load tax on every CLI subcommand). The model is
+# loaded once per process and cached.
+_SPACY_NLP: object | None = None
+_SPACY_LOAD_ATTEMPTED = False
+
+
+def _get_spacy_nlp():
+    global _SPACY_NLP, _SPACY_LOAD_ATTEMPTED
+    if _SPACY_LOAD_ATTEMPTED:
+        return _SPACY_NLP
+    _SPACY_LOAD_ATTEMPTED = True
     try:
-        _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
-    except OSError:
+        import spacy as _spacy
+        try:
+            _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
+        except OSError:
+            _SPACY_NLP = None
+    except ImportError:
         _SPACY_NLP = None
-except ImportError:
-    _SPACY_NLP = None
+    return _SPACY_NLP
 
 
 def _spacy_pos_counts(text: str) -> dict[str, int] | None:
     """Real POS counts via spaCy when available. Returns None if unavailable."""
-    if _SPACY_NLP is None:
+    nlp = _get_spacy_nlp()
+    if nlp is None:
         return None
-    doc = _SPACY_NLP(text)
+    doc = nlp(text)
     out = {"noun": 0, "adj": 0, "adv": 0, "verb": 0,
            "pron": 0, "article": 0, "prep": 0, "interj": 0}
     pos_map = {
@@ -108,11 +119,12 @@ def char_ngrams(text: str, n: int = 3, top_k: int = 200) -> list[list]:
 
     Character n-grams are the single highest-performing authorship feature in
     Stamatatos (2009) and capture orthographic + morphological habits at once.
-    Whitespace is collapsed to a single space and only Latin letters and
-    spaces are kept, so the feature is reasonably robust to formatting noise.
+    Script coverage matches the tokenizer: Unicode letters (any script) plus
+    the apostrophe and a single space; everything else (digits, punctuation,
+    symbols) is stripped, so the feature is robust to formatting noise.
     """
-    norm = re.sub(r"\s+", " ", text.lower())
-    norm = re.sub(r"[^a-zà-ÿ ']", "", norm)
+    collapsed = re.sub(r"\s+", " ", text.lower())
+    norm = "".join(ch for ch in collapsed if ch.isalpha() or ch in (" ", "'"))
     if len(norm) < n:
         return []
     counter: Counter = Counter()
@@ -160,9 +172,15 @@ def honore_r(tokens: list[str]) -> float:
 
     R = 100 * log(N) / (1 - V1/V)
     where N=tokens, V=types, V1=hapax legomena (types occurring once).
+
+    Below ~50 tokens the V1/V ratio is unstable (most words are hapaxes simply
+    because the document is short) and R explodes; we return 0.0 in that
+    regime rather than report a meaningless value. Above the floor we cap the
+    1 - V1/V denominator at 0.05 to avoid divergence on very-hapax-heavy
+    short inputs.
     """
     n = len(tokens)
-    if n < 2:
+    if n < 50:
         return 0.0
     counts = Counter(tokens)
     v = len(counts)
@@ -170,7 +188,8 @@ def honore_r(tokens: list[str]) -> float:
     if v == 0 or v1 == v:
         return 0.0
     ratio = v1 / v
-    return 100.0 * math.log(n) / (1 - ratio + 1e-9)
+    denom = max(1 - ratio, 0.05)
+    return 100.0 * math.log(n) / denom
 
 
 def simpson_d(tokens: list[str]) -> float:
@@ -489,8 +508,8 @@ def analyze(text: str) -> dict:
     features["yule_k"] = round(yule_k(tokens), 3)
     features["honore_r"] = round(honore_r(tokens), 3)
     features["simpson_d"] = round(simpson_d(tokens), 4)
-    features.update({k: round(v, 4) for k, v in sentence_features(sentences).items() if isinstance(v, float)} |
-                    {k: v for k, v in sentence_features(sentences).items() if not isinstance(v, float)})
+    sf = sentence_features(sentences)
+    features.update({k: round(v, 4) if isinstance(v, float) else v for k, v in sf.items()})
     features.update({k: round(v, 4) for k, v in punctuation_rates(text, n_words).items()})
     features.update({k: round(v, 4) for k, v in readability(tokens, sentences).items()})
     features.update({k: round(v, 4) for k, v in function_word_rates(tokens, n_words).items()})
@@ -503,8 +522,8 @@ def analyze(text: str) -> dict:
 
     features.update({k: round(v, 4) for k, v in tone_metrics(tokens, text_lower, n_words).items()})
 
-    features.update({k: round(v, 4) for k, v in paragraph_features(text).items() if isinstance(v, float)})
-    features["paragraph_count"] = paragraph_features(text)["paragraph_count"]
+    pf = paragraph_features(text)
+    features.update({k: round(v, 4) if isinstance(v, float) else v for k, v in pf.items()})
 
     # Lists kept separately — distance.py treats these as distribution comparisons
     features["fw_bigrams"] = function_word_ngrams(tokens, n=2, top_k=100)
@@ -585,26 +604,54 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         "mfw_top150": 150, "sentence_starters": 15,
     }
     for lk in list_keys:
-        # Reconstruct raw counts: each per-doc list is normalized by its own
-        # total (for frequency lists) or already in per-1k units (for mfw),
-        # so we scale by word_count as a coarse estimate of raw mass.
-        merged: Counter = Counter()
-        for s in stats_list:
-            scale = max(s.get("word_count", 0), 1)
-            for item, freq in s.get(lk, []):
-                merged[item] += freq * scale
-        total = sum(merged.values()) or 1
-        cap = list_caps.get(lk, 100)
-        top = merged.most_common(cap)
-        # mfw_top150 is in per-1k units, not normalized — preserve that
         if lk == "mfw_top150":
-            total_w = sum(s.get("word_count", 0) for s in stats_list) or 1
-            # `merged[item]` here is per1k_freq * word_count summed across docs,
-            # which equals raw count summed × 1000 / per_doc_word_count.
-            # Dividing by total_w gives a corpus-level rate per word; multiply
-            # by 1000 implicitly since the inputs are already per-1k.
-            out[lk] = [[g, round(c / total_w, 4)] for g, c in top]
+            # Each per-doc list is in per-1k units. The corpus rate is the
+            # word-count-weighted average of those rates. Sigma is the across-
+            # document stddev of the same per-1k rates, persisted under
+            # `_mfw_sigma` for use by the real Burrows Delta formula.
+            per_doc_rates: dict[str, list[float]] = {}
+            doc_word_counts: list[int] = []
+            for s in stats_list:
+                doc_word_counts.append(s.get("word_count", 0))
+                doc_map = {item: freq for item, freq in s.get(lk, [])}
+                # collect every word ever seen in any doc
+                for word in doc_map:
+                    per_doc_rates.setdefault(word, [])
+            # ensure every word has a per-doc rate (0.0 where absent)
+            for s_idx, s in enumerate(stats_list):
+                doc_map = {item: freq for item, freq in s.get(lk, [])}
+                for word in per_doc_rates:
+                    per_doc_rates[word].append(doc_map.get(word, 0.0))
+            # corpus rate = weighted mean by word_count
+            total_w = sum(doc_word_counts) or 1
+            corpus_rates = []
+            mfw_sigma: dict[str, float] = {}
+            for word, rates in per_doc_rates.items():
+                weighted_mean = sum(r * w for r, w in zip(rates, doc_word_counts)) / total_w
+                corpus_rates.append((word, weighted_mean))
+                if len(rates) > 1:
+                    mu = sum(rates) / len(rates)
+                    var = sum((r - mu) ** 2 for r in rates) / (len(rates) - 1)
+                    mfw_sigma[word] = round(_math.sqrt(var), 4) if var > 0 else 0.0
+                else:
+                    mfw_sigma[word] = 0.0
+            corpus_rates.sort(key=lambda x: -x[1])
+            cap = list_caps.get(lk, 150)
+            out[lk] = [[g, round(r, 4)] for g, r in corpus_rates[:cap]]
+            out["_mfw_sigma"] = {g: mfw_sigma.get(g, 0.0) for g, _ in corpus_rates[:cap]}
         else:
+            # Reconstruct raw-ish counts: each per-doc list is already
+            # normalized over its emitted total. Scale by word_count so a
+            # 10k-word doc contributes ten times more weight than a 1k-word
+            # doc, then renormalize once over the merged total.
+            merged: Counter = Counter()
+            for s in stats_list:
+                scale = max(s.get("word_count", 0), 1)
+                for item, freq in s.get(lk, []):
+                    merged[item] += freq * scale
+            total = sum(merged.values()) or 1
+            cap = list_caps.get(lk, 100)
+            top = merged.most_common(cap)
             out[lk] = [[g, round(c / total, 6)] for g, c in top]
 
     out["sample_count"] = len(stats_list)

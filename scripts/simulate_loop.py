@@ -35,20 +35,18 @@ DISCOURSE_BANK = ["moreover", "thus", "consequently", "nevertheless"]
 
 def _splice_sentence(text: str, old: str, new: str) -> str:
     """Replace `old` in `text` with `new`, but only when `old` sits at a
-    sentence boundary (start-of-text or after a sentence terminator + space).
-
-    Avoids the substring-collision bug of `str.replace`: a short sentence that
-    is also a fragment of a longer one will not be silently rewritten in the
-    wrong place.
+    real sentence boundary: start-of-text, or preceded by a terminator
+    (.!?…) followed by whitespace. The previous regex anchored on any
+    preceding whitespace, which still permitted intra-sentence collisions
+    (e.g. matching "It works" inside "It works fine."). A literal-find
+    fallback is intentionally NOT provided — if no boundary-anchored match
+    exists, the edit is skipped (returning the original text), and the
+    rule-cycling loop in the caller tries the next gap.
     """
-    pattern = re.compile(r"(?:(?<=\s)|^)" + re.escape(old))
+    pattern = re.compile(r"(?:(?<=[.!?…]\s)|^)" + re.escape(old))
     m = pattern.search(text)
     if not m:
-        # Fall back to literal find — better than mutating nothing.
-        idx = text.find(old)
-        if idx < 0:
-            return text
-        return text[:idx] + new + text[idx + len(old):]
+        return text
     return text[: m.start()] + new + text[m.end():]
 
 

@@ -510,6 +510,58 @@ class TestEdgeCases(unittest.TestCase):
         agg = aggregate([s_empty, s_normal])
         self.assertGreater(agg["total_word_count"], 0)
 
+    def test_max_file_bytes_rejected(self):
+        from lib.io_utils import MAX_FILE_BYTES, load_text as _load
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as fh:
+            fh.write(b"x" * (MAX_FILE_BYTES + 1024))
+            tmp_path = fh.name
+        try:
+            with self.assertRaises(ValueError):
+                _load(Path(tmp_path))
+        finally:
+            Path(tmp_path).unlink()
+
+    def test_malformed_benchmark_raises_clearly(self):
+        """A corrupt benchmark JSON must surface as a clear SystemExit, not
+        an opaque traceback. The CLI also retries briefly before giving up."""
+        import os as _os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "benchmarks").mkdir()
+            (home / "samples").mkdir()
+            (home / "benchmarks" / "broken.json").write_text("{not json")
+            draft = home / "d.md"
+            draft.write_text(SAMPLE_FORMAL)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "compare",
+                 str(draft), "--profile", "broken"],
+                capture_output=True, text=True,
+                env={**_os.environ, "SALIX_HOME": str(home)},
+            )
+            self.assertNotEqual(res.returncode, 0)
+            err = res.stderr + res.stdout
+            self.assertTrue("could not be decoded" in err or "JSON" in err)
+
+    def test_splice_sentence_avoids_substring_collision(self):
+        """_splice_sentence must skip mid-sentence substring matches and
+        only edit at real sentence boundaries — preventing the original
+        str.replace bug where a phrase appearing inside a longer sentence
+        was rewritten in the wrong place."""
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import _splice_sentence  # type: ignore
+        text = "He said performance is better than expected. Performance is better."
+        # Lowercase "performance is better" only occurs mid-sentence — no
+        # boundary match — so the splice must be a no-op.
+        out = _splice_sentence(text, "performance is better", "REPLACED")
+        self.assertEqual(out, text, "should not edit a mid-sentence substring")
+        # But the boundary-anchored full sentence does splice cleanly.
+        out2 = _splice_sentence(text, "Performance is better.", "It improved.")
+        self.assertIn("It improved.", out2)
+        # First-sentence content is preserved
+        self.assertIn("He said performance is better than expected.", out2)
+
     def test_modal_hedge_disambiguation(self):
         """'May 2024' must not count as a hedge; 'may rain' should."""
         from lib.tone import count_modal_hedges

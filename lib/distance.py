@@ -69,7 +69,7 @@ WEIGHTS = {
 SKIP_FEATURES = {
     "word_count", "type_count", "sentence_count", "max_sent_len",
     "paragraph_count", "sample_count", "total_word_count",
-    "_sigma",
+    "_sigma", "_mfw_sigma",
 }
 
 
@@ -321,13 +321,17 @@ def _cosine_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
     return distance, top
 
 
-def _burrows_delta(target_pairs, benchmark_pairs, sigma_pairs=None) -> tuple[float, list]:
-    """Classic Burrows' Delta over the most-frequent-words list.
+def _burrows_delta(target_pairs, benchmark_pairs, mfw_sigma: dict | None = None
+                   ) -> tuple[float, list]:
+    """Burrows' Delta over the most-frequent-words list.
 
     Δ = (1/V) * Σ |z_target_v - z_benchmark_v|
-    where z_x_v = (x_v - μ_v) / σ_v and μ, σ are computed over the corpus.
-    Without per-word σ from the benchmark, we use the corpus mean as μ and the
-    pooled stddev across both vectors as σ.
+
+    where z_x_v = (x_v - μ_v) / σ_v. The benchmark vector itself supplies μ
+    (the corpus rate per word). σ_v is the across-document stddev computed
+    at ingest time and persisted in the benchmark under `_mfw_sigma`. When
+    that's missing (single-document benchmark or v1 schema), we fall back to
+    the median-of-rates as a robust σ proxy across the union of keys.
     """
     import math as _math
     t_map = {k: v for k, v in target_pairs}
@@ -335,21 +339,40 @@ def _burrows_delta(target_pairs, benchmark_pairs, sigma_pairs=None) -> tuple[flo
     keys = sorted(set(t_map) | set(b_map))
     if not keys:
         return 0.0, []
+
+    # Determine per-word sigma. With persisted _mfw_sigma we have honest
+    # within-author variation. Without it, fall back to a global-σ surrogate:
+    # the standard deviation of the benchmark rates themselves across all
+    # MFW entries (a Burrows-style normalization that prevents one frequent
+    # function word from dominating Δ).
+    if mfw_sigma:
+        sigmas = {k: mfw_sigma.get(k, 0.0) for k in keys}
+        # floor below; some words may be absent from benchmark sigma
+        bench_rates = [b_map.get(k, 0.0) for k in keys]
+        global_mu = sum(bench_rates) / len(bench_rates)
+        global_var = sum((r - global_mu) ** 2 for r in bench_rates) / max(len(bench_rates) - 1, 1)
+        global_sigma = _math.sqrt(global_var) if global_var > 0 else 1.0
+        floor = 0.1 * global_sigma  # avoid divide-by-near-zero on stable words
+    else:
+        rates = [b_map.get(k, 0.0) for k in keys]
+        mu = sum(rates) / len(rates)
+        var = sum((r - mu) ** 2 for r in rates) / max(len(rates) - 1, 1)
+        sigma_fallback = _math.sqrt(var) if var > 0 else 1.0
+        sigmas = {k: sigma_fallback for k in keys}
+        floor = 0.0
+
     deltas = []
     pairs_for_top = []
     for k in keys:
         t = t_map.get(k, 0.0)
         b = b_map.get(k, 0.0)
-        mu = (t + b) / 2.0
-        # pooled stddev of two-element population
-        var = ((t - mu) ** 2 + (b - mu) ** 2) / 2.0
-        sigma = _math.sqrt(var)
-        if sigma < 1e-9:
+        sigma = max(sigmas.get(k, 0.0), floor)
+        if sigma <= 0:
             continue
-        zt = (t - mu) / sigma
-        zb = (b - mu) / sigma
-        deltas.append(abs(zt - zb))
-        pairs_for_top.append((k, t, b, abs(zt - zb)))
+        zt = (t - b) / sigma  # benchmark rate is the μ for this MFW
+        d = abs(zt)
+        deltas.append(d)
+        pairs_for_top.append((k, t, b, d))
     if not deltas:
         return 0.0, []
     delta = sum(deltas) / len(deltas)
@@ -415,10 +438,12 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
         category_totals["ngrams"] = category_totals.get("ngrams", 0.0) + dist * 5.0
         category_counts["ngrams"] = category_counts.get("ngrams", 0) + 1
 
-    # Burrows' Delta over MFW
+    # Burrows' Delta over MFW. Uses persisted _mfw_sigma when available
+    # (multi-doc benchmarks); falls back to global-σ over the MFW vector.
     t_mfw = target.get("mfw_top150", [])
     b_mfw = benchmark.get("mfw_top150", [])
-    delta_val, delta_top = _burrows_delta(t_mfw, b_mfw)
+    mfw_sigma = benchmark.get("_mfw_sigma") if isinstance(benchmark, dict) else None
+    delta_val, delta_top = _burrows_delta(t_mfw, b_mfw, mfw_sigma=mfw_sigma)
     ngram_gaps["mfw_top150"] = {
         "metric": "burrows_delta",
         "distance": round(delta_val, 4),

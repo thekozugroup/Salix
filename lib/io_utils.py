@@ -22,6 +22,8 @@ HTML_TAG_RE = re.compile(r"<[^>]+>")
 NUMERIC_CITATION_RE = re.compile(r"\[\s*\d+(?:\s*,\s*\d+)*\s*\]")
 PAREN_CITATION_RE = re.compile(r"\([A-Z][a-zA-Z\-]+(?:\s+et\s+al\.)?,\s*\d{4}[a-z]?\)")
 MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]+\)")
+MD_REFLINK_RE = re.compile(r"\[([^\]]+)\]\[[^\]]*\]")
+MD_REFDEF_RE = re.compile(r"^\[[^\]]+\]:\s*\S+.*$", re.MULTILINE)
 MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]+\)")
 MD_HEADING_RE = re.compile(r"^#{1,6}\s+", re.MULTILINE)
 # Anchor bullet stripping at line start (not at any leading whitespace) so
@@ -51,6 +53,8 @@ def clean_text(raw: str) -> str:
     t = MD_IMAGE_RE.sub("", t)
     t = HTML_TAG_RE.sub("", t)
     t = MD_LINK_RE.sub(r"\1", t)
+    t = MD_REFLINK_RE.sub(r"\1", t)
+    t = MD_REFDEF_RE.sub("", t)
     t = URL_RE.sub("", t)
     t = NUMERIC_CITATION_RE.sub("", t)
     t = PAREN_CITATION_RE.sub("", t)
@@ -102,6 +106,17 @@ def load_corpus(sample_dir: Path, extensions: Iterable[str] = (".txt", ".md")) -
         # follow_symlinks defaults False on rglob in 3.12+, but we resolve to
         # canonical paths and skip duplicates to defend against symlink loops.
         for p in sorted(sample_dir.rglob(f"*{ext}")):
+            # Reject symlinks before resolving — protects against fan-out
+            # via maliciously placed symlinks pointing into large trees.
+            if p.is_symlink():
+                # Allow the link only if its target is inside sample_dir.
+                try:
+                    target = p.resolve()
+                    sample_root = sample_dir.resolve()
+                    if not str(target).startswith(str(sample_root)):
+                        continue
+                except OSError:
+                    continue
             try:
                 key = p.resolve()
             except OSError:
