@@ -173,6 +173,64 @@ class TestEndToEnd(unittest.TestCase):
             self.assertGreater(data["stats"]["total_word_count"], 500)
 
 
+class TestCLI(unittest.TestCase):
+    """Verify the unified `salix` CLI dispatches each subcommand correctly."""
+
+    def test_help(self):
+        import subprocess
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "salix"), "help"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("salix status", res.stdout)
+        self.assertIn("salix ingest", res.stdout)
+
+    def test_status(self):
+        import subprocess
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "salix"), "status"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("Salix root:", res.stdout)
+
+    def test_ingest_then_compare_via_cli(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            samples_dir = Path(tmp) / "samples"
+            samples_dir.mkdir()
+            (samples_dir / "a.md").write_text((SAMPLE_FORMAL + "\n") * 6)
+            (samples_dir / "b.md").write_text((SAMPLE_FORMAL + "\n") * 6)
+            bench_dir = ROOT / "benchmarks"
+            bench_dir.mkdir(exist_ok=True)
+            test_bench = bench_dir / "_clitest.json"
+            try:
+                res = subprocess.run(
+                    [sys.executable, str(ROOT / "salix"), "ingest",
+                     "--name", "_clitest", "--samples", str(samples_dir),
+                     "--min-words", "100"],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(res.returncode, 0, res.stderr)
+                self.assertTrue(test_bench.exists())
+
+                draft = Path(tmp) / "draft.md"
+                draft.write_text(TARGET_DRAFT)
+                res2 = subprocess.run(
+                    [sys.executable, str(ROOT / "salix"), "compare",
+                     str(draft), "--profile", "_clitest", "--json"],
+                    capture_output=True, text=True,
+                )
+                self.assertEqual(res2.returncode, 0, res2.stderr)
+                report = json.loads(res2.stdout)
+                self.assertIn("total_distance", report)
+                self.assertGreater(report["total_distance"], 0.5)
+            finally:
+                if test_bench.exists():
+                    test_bench.unlink()
+
+
 class TestSimulator(unittest.TestCase):
     """Validate the rewrite-loop mechanics using the rule-based simulator."""
 
