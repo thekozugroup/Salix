@@ -20,7 +20,12 @@ _ABBR = {
 }
 SENT_SPLIT_RE = re.compile(r"(?<=[.!?…])[\"')\]]?\s+(?=\S)")
 DECIMAL_RE = re.compile(r"(\d)\.(\d)")
-WORD_RE = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
+
+# Word tokenizer. Unicode-aware so accented Latin scripts (French, German,
+# Spanish, etc.) are not silently dropped. Greek/Cyrillic also captured.
+# CJK characters are individual word units when present (one char = one word).
+WORD_RE_LATIN = re.compile(r"[^\W\d_]+(?:'[^\W\d_]+)?", re.UNICODE)
+WORD_RE = WORD_RE_LATIN  # alias kept for backward compatibility
 SYLLABLE_VOWEL_RE = re.compile(r"[aeiouy]+", re.IGNORECASE)
 
 PUNCT_TRACKED = [

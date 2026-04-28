@@ -19,8 +19,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
+
+__version__ = "0.7.0"
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -30,8 +33,12 @@ from lib.distance import compute_gaps  # noqa: E402
 from lib.io_utils import load_text  # noqa: E402
 from lib.stats import analyze, aggregate  # noqa: E402
 
-BENCH_DIR = ROOT / "benchmarks"
-SAMPLES_DIR = ROOT / "samples"
+# SALIX_HOME points to where benchmarks/ and samples/ live. Defaults to the
+# script's own directory (the dev/install path). Tests and multi-user
+# deployments should override it to keep state isolated from the install dir.
+SALIX_HOME = Path(os.environ.get("SALIX_HOME", str(ROOT)))
+BENCH_DIR = SALIX_HOME / "benchmarks"
+SAMPLES_DIR = SALIX_HOME / "samples"
 
 
 def _bench_path(name: str) -> Path:
@@ -58,6 +65,8 @@ def cmd_status(args):
     profiles = _list_profiles()
     sample_files = sorted(list(SAMPLES_DIR.rglob("*.txt")) + list(SAMPLES_DIR.rglob("*.md"))) if SAMPLES_DIR.exists() else []
     print(f"Salix root:       {ROOT}")
+    print(f"SALIX_HOME:       {SALIX_HOME}")
+    print(f"Version:          {__version__}")
     print(f"Profiles:         {len(profiles)}  ({', '.join(profiles) if profiles else 'none'})")
     print(f"Sample files:     {len(sample_files)}")
     if profiles:
@@ -153,6 +162,7 @@ def cmd_help(args):
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="salix", description="Personal writing-style replicator.")
+    p.add_argument("--version", action="version", version=f"salix {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("status", help="Show profiles, samples, and next-step suggestions").set_defaults(fn=cmd_status)

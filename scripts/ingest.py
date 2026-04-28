@@ -13,7 +13,7 @@ from __future__ import annotations
 import _path  # noqa: F401
 import argparse
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from lib.io_utils import load_text
@@ -59,7 +59,8 @@ def main() -> int:
     aggregated = aggregate(per_file_stats)
     benchmark = {
         "name": args.name,
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "schema_version": 2,
+        "created_at": datetime.now(timezone.utc).isoformat(),
         "source_dir": str(samples_dir.resolve()),
         "files_used": [s["_source"] for s in per_file_stats],
         "skipped": skipped,
@@ -68,7 +69,19 @@ def main() -> int:
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(benchmark, indent=2))
+    # Atomic write: stage to a tempfile in the same directory, then rename.
+    # Prevents partial-write corruption if the process is interrupted, and
+    # avoids races when multiple Claude sessions share a SALIX_HOME.
+    import tempfile, os as _os
+    fd, tmpname = tempfile.mkstemp(prefix=".salix_", suffix=".json", dir=str(out_path.parent))
+    try:
+        with _os.fdopen(fd, "w") as fh:
+            json.dump(benchmark, fh, indent=2)
+        _os.replace(tmpname, out_path)
+    except Exception:
+        if _os.path.exists(tmpname):
+            _os.unlink(tmpname)
+        raise
     print(f"Benchmark '{args.name}' written to {out_path}")
     print(f"  Files used:    {len(per_file_stats)}")
     print(f"  Files skipped: {len(skipped)}")

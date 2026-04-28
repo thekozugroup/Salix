@@ -83,6 +83,74 @@ class TestStats(unittest.TestCase):
         self.assertNotIn("block", cleaned)
         self.assertNotIn("example.com", cleaned)
 
+    def test_clean_text_strips_code_blocks_before_url_pass(self):
+        """A URL inside a fenced block must not leak into the cleaned text."""
+        raw = "Prose. ```\ncode at http://leak.example.com\n``` More prose."
+        cleaned = clean_text(raw)
+        self.assertNotIn("leak.example.com", cleaned)
+        self.assertNotIn("code at", cleaned)
+
+    def test_clean_text_em_dash_not_treated_as_bullet(self):
+        """Em-dash-led narration must survive clean_text untouched."""
+        raw = "He paused. — She replied. — They left."
+        cleaned = clean_text(raw)
+        self.assertIn("—", cleaned)
+        self.assertIn("She replied", cleaned)
+
+    def test_clean_text_image_does_not_leak(self):
+        raw = "Caption: ![alt text here](path/to.png) and prose."
+        cleaned = clean_text(raw)
+        self.assertNotIn("alt text", cleaned)
+        self.assertNotIn("path/to", cleaned)
+        self.assertIn("Caption:", cleaned)
+
+    def test_word_re_handles_accented_latin(self):
+        from lib.stats import tokenize as _tok
+        toks = _tok("Café résumé naïve façade")
+        self.assertEqual(len(toks), 4)
+        self.assertIn("café", toks)
+        self.assertIn("résumé", toks)
+
+    def test_load_text_falls_back_on_cp1252(self):
+        """CP1252 smart-quotes must decode without silent U+FFFD substitution."""
+        from lib.io_utils import load_text as _load
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as fh:
+            # 0x93 = "smart left double quote" in CP1252; invalid UTF-8.
+            fh.write(b"He said \x93hello\x94 to her.")
+            tmp_path = fh.name
+        try:
+            text = _load(Path(tmp_path))
+            self.assertNotIn("�", text)
+            self.assertIn("hello", text)
+        finally:
+            Path(tmp_path).unlink()
+
+    def test_load_text_strips_bom(self):
+        from lib.io_utils import load_text as _load
+        with tempfile.NamedTemporaryFile(suffix=".txt", delete=False) as fh:
+            fh.write(b"\xef\xbb\xbfHello world.")
+            tmp_path = fh.name
+        try:
+            text = _load(Path(tmp_path))
+            self.assertTrue(text.startswith("Hello"))
+        finally:
+            Path(tmp_path).unlink()
+
+    def test_load_corpus_dedupes_symlinks(self):
+        from lib.io_utils import load_corpus as _lc
+        import os as _os
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "real.md").write_text(SAMPLE_FORMAL)
+            try:
+                _os.symlink(d / "real.md", d / "link.md")
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unsupported on this platform")
+            corpus = _lc(d)
+            # corpus should not double-count the same canonical file
+            occurrences = corpus.count("The implications of this shift")
+            self.assertEqual(occurrences, 1)
+
     def test_analyze_returns_required_keys(self):
         s = analyze(SAMPLE_FORMAL)
         for k in ["word_count", "ttr", "mtld", "mean_sent_len",
@@ -230,39 +298,48 @@ class TestCLI(unittest.TestCase):
         self.assertIn("Salix root:", res.stdout)
 
     def test_ingest_then_compare_via_cli(self):
+        """End-to-end CLI test, fully isolated via SALIX_HOME — never writes
+        to the installed skill's benchmarks/ dir."""
+        import os as _os
         import subprocess
         with tempfile.TemporaryDirectory() as tmp:
-            samples_dir = Path(tmp) / "samples"
-            samples_dir.mkdir()
+            home = Path(tmp) / "home"
+            home.mkdir()
+            (home / "samples").mkdir()
+            (home / "benchmarks").mkdir()
+            samples_dir = home / "samples"
             (samples_dir / "a.md").write_text((SAMPLE_FORMAL + "\n") * 6)
             (samples_dir / "b.md").write_text((SAMPLE_FORMAL + "\n") * 6)
-            bench_dir = ROOT / "benchmarks"
-            bench_dir.mkdir(exist_ok=True)
-            test_bench = bench_dir / "_clitest.json"
-            try:
-                res = subprocess.run(
-                    [sys.executable, str(ROOT / "salix"), "ingest",
-                     "--name", "_clitest", "--samples", str(samples_dir),
-                     "--min-words", "100"],
-                    capture_output=True, text=True,
-                )
-                self.assertEqual(res.returncode, 0, res.stderr)
-                self.assertTrue(test_bench.exists())
 
-                draft = Path(tmp) / "draft.md"
-                draft.write_text(TARGET_DRAFT)
-                res2 = subprocess.run(
-                    [sys.executable, str(ROOT / "salix"), "compare",
-                     str(draft), "--profile", "_clitest", "--json"],
-                    capture_output=True, text=True,
-                )
-                self.assertEqual(res2.returncode, 0, res2.stderr)
-                report = json.loads(res2.stdout)
-                self.assertIn("total_distance", report)
-                self.assertGreater(report["total_distance"], 0.5)
-            finally:
-                if test_bench.exists():
-                    test_bench.unlink()
+            env = {**_os.environ, "SALIX_HOME": str(home)}
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "ingest",
+                 "--name", "_clitest", "--min-words", "100"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertTrue((home / "benchmarks" / "_clitest.json").exists())
+
+            draft = Path(tmp) / "draft.md"
+            draft.write_text(TARGET_DRAFT)
+            res2 = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "compare",
+                 str(draft), "--profile", "_clitest", "--json"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(res2.returncode, 0, res2.stderr)
+            report = json.loads(res2.stdout)
+            self.assertIn("total_distance", report)
+            self.assertGreater(report["total_distance"], 0.5)
+
+    def test_version_flag(self):
+        import subprocess
+        res = subprocess.run(
+            [sys.executable, str(ROOT / "salix"), "--version"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("salix", res.stdout.lower())
 
 
 class TestSimulator(unittest.TestCase):
