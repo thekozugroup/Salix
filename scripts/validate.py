@@ -206,11 +206,16 @@ def attribution_check_real(corpus_dir: Path, kfold: bool = True) -> dict:
         for label, files in author_files.items():
             _classify(files[-1], label, len(files) - 1)
 
+    # Bootstrap 95% CI for the accuracy estimate.
+    binary = [1 if (true == pred) else 0
+              for (true, pred), n in confusion.items() for _ in range(n)]
+    ci_lo, ci_hi = bootstrap_ci(binary, n_resamples=1000)
     return {
         "mode": "real_corpus" + (" (LOO k-fold)" if kfold else ""),
         "authors": len(author_dirs),
         "docs_per_author": "varies",
         "accuracy": correct / max(total, 1),
+        "accuracy_ci_95": (ci_lo, ci_hi),
         "correct": correct,
         "total": total,
         "confusion": confusion,
@@ -293,6 +298,83 @@ def topic_transfer_check(authors: int, seed: int, sentences_per_doc: int = 60) -
         "total_pairs": n,
         "separation_accuracy": correct_separation / n,
     }
+
+
+def cross_domain_check(corpus_dir: Path) -> dict:
+    """Cross-domain stability: train on author docs from one half of the
+    sub-corpus, test on the held-out half. Detects whether the fingerprint
+    survives genre/topic shift within the same author. Requires each author
+    to have at least 4 documents.
+
+    Layout: corpus_dir/<author>/<doc_N>.{txt,md}; the harness splits each
+    author's docs alphabetically — first half is "domain A", second is
+    "domain B" — and reports same-author cross-domain distance vs
+    other-author cross-domain distance.
+    """
+    from lib.io_utils import load_text
+    if not corpus_dir.is_dir():
+        raise SystemExit(f"Corpus dir not found: {corpus_dir}")
+    author_dirs = sorted(p for p in corpus_dir.iterdir() if p.is_dir())
+    if len(author_dirs) < 2:
+        raise SystemExit(f"Need >=2 author subdirectories under {corpus_dir}")
+    same_author_dist = []
+    cross_author_dist = []
+    benchmarks_a: dict[str, dict] = {}
+    docs_b: dict[str, list[Path]] = {}
+    for ad in author_dirs:
+        files = sorted(list(ad.glob("*.txt")) + list(ad.glob("*.md")))
+        if len(files) < 4:
+            raise SystemExit(f"Author '{ad.name}' has only {len(files)} docs; need >=4")
+        half = len(files) // 2
+        train_a = files[:half]
+        test_b = files[half:]
+        train_stats = [analyze(load_text(f)) for f in train_a]
+        benchmarks_a[ad.name] = aggregate(train_stats)
+        docs_b[ad.name] = test_b
+    # Same-author: each test_b doc compared against the same author's domain-A bench
+    for label, files in docs_b.items():
+        for f in files:
+            d = compute_gaps(analyze(load_text(f)), benchmarks_a[label])["total_distance"]
+            same_author_dist.append(d)
+    # Cross-author: each test_b doc compared against EVERY OTHER author's domain-A bench
+    other_labels = list(benchmarks_a.keys())
+    for true_label, files in docs_b.items():
+        for f in files:
+            for other in other_labels:
+                if other == true_label:
+                    continue
+                d = compute_gaps(analyze(load_text(f)), benchmarks_a[other])["total_distance"]
+                cross_author_dist.append(d)
+    n_s = len(same_author_dist)
+    n_c = len(cross_author_dist)
+    mean_same = sum(same_author_dist) / max(n_s, 1)
+    mean_cross = sum(cross_author_dist) / max(n_c, 1)
+    return {
+        "authors": len(author_dirs),
+        "mean_same_author_cross_domain": mean_same,
+        "mean_other_author_cross_domain": mean_cross,
+        "separation_ratio": mean_cross / mean_same if mean_same > 0 else 0.0,
+        "same_n": n_s,
+        "cross_n": n_c,
+    }
+
+
+def bootstrap_ci(values: list[float], n_resamples: int = 1000,
+                 confidence: float = 0.95, seed: int = 0) -> tuple[float, float]:
+    """Percentile bootstrap CI for the mean of `values`."""
+    if not values:
+        return 0.0, 0.0
+    rng = random.Random(seed)
+    means = []
+    n = len(values)
+    for _ in range(n_resamples):
+        sample = [values[rng.randrange(n)] for _ in range(n)]
+        means.append(sum(sample) / n)
+    means.sort()
+    alpha = (1 - confidence) / 2
+    lo = means[int(alpha * n_resamples)]
+    hi = means[int((1 - alpha) * n_resamples)]
+    return round(lo, 4), round(hi, 4)
 
 
 def stability_check(seed: int, sentences_per_doc: int = 60) -> dict:

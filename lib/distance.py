@@ -69,7 +69,7 @@ WEIGHTS = {
 SKIP_FEATURES = {
     "word_count", "type_count", "sentence_count", "max_sent_len",
     "paragraph_count", "sample_count", "total_word_count",
-    "_sigma", "_mfw_sigma",
+    "_sigma", "_mfw_sigma", "_pos_sigma",
 }
 
 
@@ -409,6 +409,19 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
         category_totals[cat] = category_totals.get(cat, 0.0) + abs(z)
         category_counts[cat] = category_counts.get(cat, 0) + 1
         direction = "raise" if t_val < b_val else "lower"
+        # Cohen's d with the empirical sigma serves as a simple effect-size
+        # interpretation. With z = (t - b)/σ, |d| = |z| since target is one
+        # observation. Bands: |d|<0.2 trivial, 0.2-0.5 small, 0.5-0.8 medium,
+        # >0.8 large. Useful for "is this gap meaningful" judgement calls.
+        cohens_d = round(z, 3)
+        if abs(cohens_d) < 0.2:
+            effect = "trivial"
+        elif abs(cohens_d) < 0.5:
+            effect = "small"
+        elif abs(cohens_d) < 0.8:
+            effect = "medium"
+        else:
+            effect = "large"
         scalar_gaps.append({
             "feature": feature,
             "category": cat,
@@ -416,6 +429,8 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
             "benchmark": round(float(b_val), 4),
             "z_distance": round(z, 3),
             "abs_z": round(abs(z), 3),
+            "cohens_d": cohens_d,
+            "effect_size": effect,
             "direction": direction,
             "suggestion": _suggestion(feature, float(t_val), float(b_val)),
             "edit_hint": _hint_for(feature, direction),

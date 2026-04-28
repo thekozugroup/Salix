@@ -72,8 +72,6 @@ Major iteration round driven by independent linguistic + engineering review.
 - N-gram normalization no longer double-counts word_count weighting on
   already-normalized frequencies.
 
-## [Unreleased]
-
 ## [0.8.0] — 2026-04-28
 
 Round-2 + round-3 reviewer punch lists. Substantial linguistic overhaul.

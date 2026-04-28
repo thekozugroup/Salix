@@ -112,8 +112,8 @@ def cmd_status(args):
         for name in profiles:
             try:
                 data = _load_bench(name)
-            except SystemExit as e:
-                print(f"  - {name:20} <unreadable: {e}>")
+            except (SystemExit, OSError, ValueError, KeyError) as e:
+                print(f"  - {name:20} <unreadable: {type(e).__name__}: {e}>")
                 continue
             stats = data.get("stats", {})
             print(f"  - {name:20} {stats.get('total_word_count', 0):>7,} words from "
@@ -185,10 +185,20 @@ def cmd_validate(args):
     from scripts.validate import (  # type: ignore
         attribution_check,
         attribution_check_real,
+        cross_domain_check,
         render_report,
         stability_check,
         topic_transfer_check,
     )
+    if getattr(args, "cross_domain", None):
+        print(f"Running cross-domain check on: {args.cross_domain}")
+        result = cross_domain_check(Path(args.cross_domain))
+        print(f"\nAuthors:                          {result['authors']}")
+        print(f"Mean same-author cross-domain:    {result['mean_same_author_cross_domain']:.3f}")
+        print(f"Mean other-author cross-domain:   {result['mean_other_author_cross_domain']:.3f}")
+        print(f"Separation ratio:                 {result['separation_ratio']:.2f}× "
+              "(>1 means same-author docs cluster closer across domains)")
+        return 0
     if getattr(args, "corpus_dir", None):
         print(f"Running attribution check on real corpus: {args.corpus_dir}")
         attr = attribution_check_real(Path(args.corpus_dir))
@@ -290,6 +300,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_val.add_argument("--docs-per-author", type=int, default=6)
     p_val.add_argument("--sentences-per-doc", type=int, default=60)
     p_val.add_argument("--corpus-dir", help="Real-corpus dir (subdirs are authors)")
+    p_val.add_argument("--cross-domain", help="Run cross-domain stability check on a real corpus")
     p_val.add_argument("--out", help="Path to save the report")
     p_val.set_defaults(fn=cmd_validate)
 

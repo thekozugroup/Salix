@@ -102,14 +102,26 @@ def attribute(corpus_dir: Path, top_k: int) -> dict:
 
 
 def main() -> int:
+    import json
+    import sys
     ap = argparse.ArgumentParser(description="Stamatatos 2009 char-3gram baseline.")
     ap.add_argument("--corpus-dir", required=True,
                     help="Corpus root: subdirs are author labels.")
     ap.add_argument("--top-k", type=int, default=1000,
                     help="Vocabulary size for the char-3gram profile (default 1000).")
+    ap.add_argument("--json", action="store_true",
+                    help="Emit machine-readable JSON instead of human text.")
     args = ap.parse_args()
 
     res = attribute(Path(args.corpus_dir), args.top_k)
+    if args.json:
+        # Confusion has tuple keys; serialize as list-of-pairs for JSON.
+        payload = dict(res)
+        payload["confusion"] = [{"true": t, "pred": p, "count": n}
+                                for (t, p), n in res["confusion"].items()]
+        json.dump(payload, sys.stdout, indent=2)
+        sys.stdout.write("\n")
+        return 0
     print(f"Method:          {res['method']}")
     print(f"Vocabulary size: {res['top_k']}")
     print(f"Authors:         {res['authors']}")

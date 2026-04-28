@@ -21,23 +21,27 @@ _SPACY_LOCK = _threading.Lock()
 
 
 def _get_spacy_nlp():
+    """Thread-safe lazy spaCy loader. The model load happens inside the lock,
+    but the import itself is moved outside — Python guarantees module imports
+    are idempotent under the import lock, and holding our load-lock across
+    the import would needlessly block other callers on first-call latency."""
     global _SPACY_NLP, _SPACY_LOAD_ATTEMPTED
     if _SPACY_LOAD_ATTEMPTED:
         return _SPACY_NLP
+    try:
+        import spacy as _spacy
+    except ImportError:
+        with _SPACY_LOCK:
+            _SPACY_NLP = None
+            _SPACY_LOAD_ATTEMPTED = True
+        return None
     with _SPACY_LOCK:
-        # Re-check inside the lock — another thread may have loaded while
-        # we were waiting.
         if _SPACY_LOAD_ATTEMPTED:
             return _SPACY_NLP
         try:
-            import spacy as _spacy
-            try:
-                _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
-            except OSError:
-                _SPACY_NLP = None
-        except ImportError:
+            _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
+        except OSError:
             _SPACY_NLP = None
-        # Set the flag last so partial state isn't visible to other threads.
         _SPACY_LOAD_ATTEMPTED = True
     return _SPACY_NLP
 
@@ -671,6 +675,7 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         "mfw_top150": 150, "sentence_starters": 15,
         "pos_bigrams": 100, "pos_trigrams": 100,
     }
+    pos_sigma: dict[str, float] = {}
     for lk in list_keys:
         if lk == "mfw_top150":
             # Each per-doc list is in per-1k units. The corpus rate is the
@@ -721,6 +726,28 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
             cap = list_caps.get(lk, 100)
             top = merged.most_common(cap)
             out[lk] = [[g, round(c / total, 6)] for g, c in top]
+            # For POS n-grams, also persist within-author sigma over the
+            # per-doc normalized rates of each top n-gram, mirroring the
+            # MFW path. Used by distance.py to z-normalize POS n-gram
+            # comparisons honestly instead of via raw TVD.
+            if lk in ("pos_bigrams", "pos_trigrams"):
+                items_kept = {g for g, _ in top}
+                # Per-doc rates for each kept n-gram
+                doc_rates: dict[str, list[float]] = {g: [] for g in items_kept}
+                for s in stats_list:
+                    doc_map = {item: freq for item, freq in s.get(lk, [])}
+                    for g in items_kept:
+                        doc_rates[g].append(doc_map.get(g, 0.0))
+                for g, rates in doc_rates.items():
+                    if len(rates) > 1:
+                        mu = sum(rates) / len(rates)
+                        var = sum((r - mu) ** 2 for r in rates) / (len(rates) - 1)
+                        pos_sigma[f"{lk}::{g}"] = (
+                            round(_math.sqrt(var), 6) if var > 0 else 0.0
+                        )
+
+    if pos_sigma:
+        out["_pos_sigma"] = pos_sigma
 
     out["sample_count"] = len(stats_list)
     out["total_word_count"] = total_w

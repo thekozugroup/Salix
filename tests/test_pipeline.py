@@ -523,6 +523,39 @@ class TestEdgeCases(unittest.TestCase):
         else:
             self.assertEqual(s["pos_bigrams"], [])
 
+    def test_spacy_load_thread_safe(self):
+        """Many concurrent _get_spacy_nlp() calls must result in exactly one
+        load attempt — guards against partial-state visibility under threads."""
+        import threading
+        from unittest.mock import patch
+
+        import lib.stats as _ls
+
+        load_count = [0]
+
+        def fake_load(*a, **kw):
+            load_count[0] += 1
+            return object()  # any non-None sentinel
+
+        # Reset module state
+        _ls._SPACY_NLP = None
+        _ls._SPACY_LOAD_ATTEMPTED = False
+
+        # Stub spacy module if it isn't installed; mock load if it is.
+        try:
+            import spacy as _spacy_real  # noqa: F401
+            target = "spacy.load"
+        except ImportError:
+            self.skipTest("spaCy not installed; thread-safety test irrelevant")
+
+        with patch(target, side_effect=fake_load):
+            threads = [threading.Thread(target=_ls._get_spacy_nlp) for _ in range(16)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual(load_count[0], 1, f"loaded {load_count[0]} times")
+
     def test_spacy_load_is_lazy(self):
         """Importing lib.stats must NOT trigger the spaCy model load.
         The load happens on first call to a function that needs POS info."""
@@ -570,12 +603,90 @@ class TestEdgeCases(unittest.TestCase):
             res = subprocess.run(
                 [sys.executable, str(ROOT / "salix"), "status"],
                 capture_output=True, text=True,
-                env={**_os.environ, "SALIX_HOME": str(home)},
+                env={**_os.environ, "SALIX_HOME": str(home), "PYTHONPATH": str(ROOT)},
             )
             # Status must succeed and surface the issue in output, not crash
             self.assertEqual(res.returncode, 0, res.stderr)
             self.assertIn("broken", res.stdout)
             self.assertIn("unreadable", res.stdout)
+
+    def test_compute_gaps_includes_cohens_d_effect(self):
+        formal = analyze(SAMPLE_FORMAL)
+        target = analyze(TARGET_DRAFT)
+        gaps = compute_gaps(target, formal)
+        for g in gaps["top_gaps"]:
+            self.assertIn("cohens_d", g)
+            self.assertIn("effect_size", g)
+            self.assertIn(g["effect_size"], ("trivial", "small", "medium", "large"))
+
+    def test_aggregate_persists_pos_sigma_when_present(self):
+        s1 = analyze(SAMPLE_FORMAL)
+        s2 = analyze(SAMPLE_FORMAL[:300])
+        agg = aggregate([s1, s2])
+        # _pos_sigma is only populated when spaCy is available; if absent,
+        # pos_bigrams is [] and _pos_sigma is also empty / missing — both
+        # are valid states.
+        from lib.stats import _get_spacy_nlp
+        if _get_spacy_nlp() is not None:
+            self.assertIn("_pos_sigma", agg)
+
+    def test_cross_domain_check_runs(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import cross_domain_check
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "c"
+            for label, sample in [("a", SAMPLE_FORMAL), ("b", SAMPLE_CASUAL)]:
+                ad = corpus / label
+                ad.mkdir(parents=True)
+                for i in range(4):
+                    (ad / f"d{i}.txt").write_text((sample + "\n") * 3)
+            r = cross_domain_check(corpus)
+            self.assertEqual(r["authors"], 2)
+            self.assertGreater(r["same_n"], 0)
+            self.assertGreater(r["cross_n"], 0)
+            # Same-author should be closer than other-author across domains
+            self.assertGreater(r["mean_other_author_cross_domain"],
+                               r["mean_same_author_cross_domain"])
+
+    def test_attribution_check_real_reports_ci(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import attribution_check_real
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "c"
+            for label, sample in [("a", SAMPLE_FORMAL), ("b", SAMPLE_CASUAL)]:
+                ad = corpus / label
+                ad.mkdir(parents=True)
+                for i in range(4):
+                    (ad / f"d{i}.txt").write_text((sample + "\n") * 3)
+            r = attribution_check_real(corpus)
+            self.assertIn("accuracy_ci_95", r)
+            lo, hi = r["accuracy_ci_95"]
+            self.assertLessEqual(lo, r["accuracy"])
+            self.assertGreaterEqual(hi, r["accuracy"])
+
+    def test_baseline_json_output(self):
+        import json as _json
+        import os as _os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "c"
+            for label, sample in [("a", SAMPLE_FORMAL), ("b", SAMPLE_CASUAL)]:
+                ad = corpus / label
+                ad.mkdir(parents=True)
+                for i in range(4):
+                    (ad / f"d{i}.txt").write_text((sample + "\n") * 3)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "stamatatos_baseline.py"),
+                 "--corpus-dir", str(corpus), "--top-k", "200", "--json"],
+                capture_output=True, text=True,
+                env={**_os.environ, "PYTHONPATH": str(ROOT)},
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            payload = _json.loads(res.stdout)
+            self.assertIn("accuracy", payload)
+            self.assertIsInstance(payload["confusion"], list)
 
     def test_stamatatos_baseline_attributes_correctly(self):
         """The Stamatatos char-3gram baseline must achieve >=50% accuracy
