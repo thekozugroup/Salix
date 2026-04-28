@@ -1,17 +1,36 @@
-"""Tone, hedging, and formality heuristics — lexicon-based, no ML deps."""
+"""Tone, hedging, and formality heuristics — lexicon-based, no ML deps.
+
+Hedges and boosters carry context-dependent senses ("may" can be a modal hedge
+or the calendar month; "right" can be agreement or direction). The lexicon
+counts use simple disambiguation rules (see `_count_hedges`) to suppress the
+most common false positives without requiring a POS tagger.
+"""
 
 from __future__ import annotations
 
-# Hedges weaken a claim ("perhaps", "might")
+import re
+
+# "Pure" hedges — contextual senses dominate the lexical sense.
 HEDGES = frozenset([
     "perhaps", "maybe", "possibly", "probably", "presumably", "supposedly",
     "apparently", "seemingly", "ostensibly", "arguably", "allegedly",
-    "might", "may", "could", "would", "should",
-    "somewhat", "fairly", "rather", "quite", "kind", "sort",
-    "approximately", "roughly", "nearly", "almost", "about",
+    "somewhat", "fairly", "rather", "kind", "sort",
+    "approximately", "roughly", "nearly", "almost",
     "tend", "tends", "tended", "tending",
     "suggests", "suggest", "indicates", "indicate", "appears", "appear", "seems", "seem",
-    "i think", "i believe", "i guess", "in my view",  # multi-word checked separately
+])
+
+# Modal hedges — count only when followed by an infinitive verb. "may 2024"
+# (calendar) and "could you" (request) are excluded by the contextual filter.
+MODAL_HEDGES = frozenset(["might", "may", "could", "would", "should"])
+
+# Multi-word hedges checked via substring match (hedging_rate function).
+HEDGE_PHRASES = ["i think", "i believe", "i guess", "in my view",
+                 "in my opinion", "if anything", "for the most part"]
+
+MONTH_NAMES = frozenset([
+    "january", "february", "march", "april", "may", "june", "july",
+    "august", "september", "october", "november", "december",
 ])
 
 # Boosters strengthen a claim ("clearly", "definitely")
@@ -33,20 +52,42 @@ DISCOURSE = frozenset([
     "specifically", "particularly", "notably", "especially", "namely",
 ])
 
-# Sentiment seed — small, deliberate. For nuance, swap in VADER later.
+# Sentiment lexicon. Calibrated against AFINN signs and Hu-Liu opinion lists,
+# trimmed to high-precision items for short prose. For full NLP-grade accuracy
+# users should layer VADER on top; this stays self-contained.
 POSITIVE = frozenset([
+    # Affect / evaluation
     "good", "great", "excellent", "wonderful", "fantastic", "amazing",
-    "best", "better", "love", "loved", "loves", "happy", "glad",
+    "outstanding", "remarkable", "exceptional", "superb", "stellar",
+    "brilliant", "delightful", "lovely", "beautiful", "splendid",
+    "best", "better", "fine", "nice", "pleasant", "satisfying", "rewarding",
+    "love", "loved", "loves", "loving", "happy", "glad", "joyful", "cheerful",
+    # Capability / quality
     "useful", "helpful", "valuable", "powerful", "strong", "clear",
-    "right", "correct", "successful", "succeed", "win", "wins", "won",
-    "improve", "improved", "improves", "elegant", "robust",
+    "elegant", "robust", "reliable", "efficient", "effective", "smart",
+    "thoughtful", "graceful", "clean", "solid", "sturdy", "polished",
+    # Outcome
+    "right", "correct", "accurate", "successful", "succeed", "succeeds",
+    "win", "wins", "won", "achieved", "improve", "improved", "improves",
+    "thrive", "thrives", "flourish", "flourishes", "advance", "progress",
 ])
 NEGATIVE = frozenset([
-    "bad", "worst", "worse", "terrible", "awful", "horrible", "poor",
-    "hate", "hated", "hates", "sad", "unhappy", "fail", "failed", "fails",
-    "broken", "weak", "wrong", "incorrect", "useless", "harmful",
+    # Affect
+    "bad", "worst", "worse", "terrible", "awful", "horrible", "ugly",
+    "dreadful", "miserable", "depressing", "frustrating", "annoying",
+    "poor", "mediocre", "lousy", "lame",
+    "hate", "hated", "hates", "loathe", "loathed", "despise",
+    "sad", "unhappy", "angry", "upset", "disappointing",
+    # Capability
+    "broken", "buggy", "weak", "fragile", "flawed", "faulty", "shoddy",
+    "useless", "worthless", "harmful", "dangerous", "risky", "unreliable",
+    "slow", "sluggish", "clunky", "ugly", "ugly", "messy",
+    # Outcome
+    "wrong", "incorrect", "inaccurate", "fail", "failed", "fails", "failing",
+    "lose", "loses", "lost", "stuck", "blocked", "delayed",
     "problem", "problems", "issue", "issues", "bug", "bugs",
-    "difficult", "hard", "complicated", "confusing",
+    "difficult", "hard", "complicated", "confusing", "convoluted",
+    "tedious", "painful", "exhausting",
 ])
 
 
@@ -56,6 +97,33 @@ def count_overlap(tokens: list[str], lex: frozenset[str]) -> int:
 
 def count_phrases(text_lower: str, phrases: list[str]) -> int:
     return sum(text_lower.count(p) for p in phrases)
+
+
+_INFINITIVE_RE = re.compile(r"\b(?:might|may|could|would|should)\s+([a-z]+)\b", re.IGNORECASE)
+
+
+def count_modal_hedges(tokens: list[str], text_lower: str) -> int:
+    """Modal hedges, contextually filtered.
+
+    A modal counts as a hedge only when followed by a plain-verb-shaped token
+    (>=3 letters, not the modal itself, not the calendar 'may' usage). False
+    positives like 'May 2024', 'could you', or interjections ('may I?') don't
+    count.
+    """
+    count = 0
+    matches = list(_INFINITIVE_RE.finditer(text_lower))
+    for m in matches:
+        modal = m.group(0).split()[0].lower()
+        following = m.group(1).lower()
+        if modal == "may" and following in MONTH_NAMES:
+            continue
+        # Reject if next word is itself a modal or pronoun (request form).
+        if following in {"i", "you", "we", "they", "he", "she", "it"}:
+            continue
+        if len(following) < 2:
+            continue
+        count += 1
+    return count
 
 
 def heylighen_f_score(pos_counts: dict[str, int], total_words: int) -> float:
@@ -82,8 +150,10 @@ def tone_metrics(tokens: list[str], text_lower: str, total_words: int) -> dict:
             "hedging_rate": 0.0, "booster_rate": 0.0, "discourse_rate": 0.0,
             "positive_rate": 0.0, "negative_rate": 0.0, "sentiment_polarity": 0.0,
         }
-    hedge_count = count_overlap(tokens, HEDGES) + count_phrases(
-        text_lower, ["i think", "i believe", "i guess", "in my view"]
+    hedge_count = (
+        count_overlap(tokens, HEDGES)
+        + count_modal_hedges(tokens, text_lower)
+        + count_phrases(text_lower, HEDGE_PHRASES)
     )
     boost_count = count_overlap(tokens, BOOSTERS) + count_phrases(text_lower, ["of course"])
     disc_count = count_overlap(tokens, DISCOURSE)

@@ -510,6 +510,36 @@ class TestEdgeCases(unittest.TestCase):
         agg = aggregate([s_empty, s_normal])
         self.assertGreater(agg["total_word_count"], 0)
 
+    def test_modal_hedge_disambiguation(self):
+        """'May 2024' must not count as a hedge; 'may rain' should."""
+        from lib.tone import count_modal_hedges
+        text = "the meeting was held in may 2024. it may rain tomorrow."
+        from lib.stats import tokenize as _tok
+        n = count_modal_hedges(_tok(text), text)
+        # Only "may rain" (followed by a verb) counts.
+        self.assertEqual(n, 1)
+
+    def test_modal_request_form_not_hedge(self):
+        """'Could you' (request) must not count as a hedge."""
+        from lib.tone import count_modal_hedges
+        text = "could you bring it. it could be useful."
+        from lib.stats import tokenize as _tok
+        n = count_modal_hedges(_tok(text), text)
+        self.assertEqual(n, 1)  # only "could be" counts
+
+    def test_sentence_length_quantiles_present(self):
+        s = analyze(SAMPLE_FORMAL)
+        for k in ("sent_len_p25", "sent_len_p50", "sent_len_p75", "sent_len_p90"):
+            self.assertIn(k, s)
+        # Quantiles must be monotonically non-decreasing
+        self.assertLessEqual(s["sent_len_p25"], s["sent_len_p50"])
+        self.assertLessEqual(s["sent_len_p50"], s["sent_len_p75"])
+        self.assertLessEqual(s["sent_len_p75"], s["sent_len_p90"])
+
+    def test_formality_source_reported(self):
+        s = analyze(SAMPLE_FORMAL)
+        self.assertIn(s.get("formality_source"), ("spacy", "suffix_proxy"))
+
     def test_pos_proxy_suffix_rules(self):
         from lib.stats import pos_proxies
         # 'national' has suffix '-al' (>5 chars) → adj

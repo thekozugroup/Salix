@@ -29,6 +29,10 @@ EXPECTED_SIGMA = {
     "short_sent_ratio": 0.10,
     "long_sent_ratio": 0.10,
     "comma_per_sentence": 0.6,
+    "sent_len_p25": 4.0,
+    "sent_len_p50": 5.0,
+    "sent_len_p75": 6.0,
+    "sent_len_p90": 8.0,
     "flesch_kincaid_grade": 3.0,
     "gunning_fog": 3.5,
     "ari": 3.5,
@@ -105,7 +109,8 @@ def _category_for(feature: str) -> str:
     if feature.startswith("fw_") and feature.endswith("_per1k"):
         return "function_words"
     if feature in {"mean_sent_len", "stdev_sent_len", "short_sent_ratio",
-                   "long_sent_ratio", "comma_per_sentence"}:
+                   "long_sent_ratio", "comma_per_sentence",
+                   "sent_len_p25", "sent_len_p50", "sent_len_p75", "sent_len_p90"}:
         return "sentence_shape"
     if feature in {"ttr", "mtld", "mean_word_len", "long_word_ratio",
                    "yule_k", "honore_r", "simpson_d"}:

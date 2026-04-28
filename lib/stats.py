@@ -10,6 +10,38 @@ from collections.abc import Iterable
 from .function_words import FUNCTION_WORDS
 from .tone import heylighen_f_score, tone_metrics
 
+# Optional spaCy: if available with a loaded English model, we use real POS
+# counts for the formality F-score. Suffix proxies stay as the deterministic
+# zero-dependency fallback.
+try:
+    import spacy as _spacy
+    try:
+        _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
+    except OSError:
+        _SPACY_NLP = None
+except ImportError:
+    _SPACY_NLP = None
+
+
+def _spacy_pos_counts(text: str) -> dict[str, int] | None:
+    """Real POS counts via spaCy when available. Returns None if unavailable."""
+    if _SPACY_NLP is None:
+        return None
+    doc = _SPACY_NLP(text)
+    out = {"noun": 0, "adj": 0, "adv": 0, "verb": 0,
+           "pron": 0, "article": 0, "prep": 0, "interj": 0}
+    pos_map = {
+        "NOUN": "noun", "PROPN": "noun",
+        "ADJ": "adj", "ADV": "adv", "VERB": "verb", "AUX": "verb",
+        "PRON": "pron", "DET": "article",
+        "ADP": "prep", "INTJ": "interj",
+    }
+    for tok in doc:
+        bucket = pos_map.get(tok.pos_)
+        if bucket:
+            out[bucket] += 1
+    return out
+
 # Sentence boundary regex. Splits on . ! ? … (or sequences like ?! !? ...) followed
 # by whitespace then a non-whitespace token. Lowercase-prose-friendly: does not
 # require a capital next char. Abbreviations and decimal numbers are masked first.
@@ -230,12 +262,26 @@ def mtld(tokens: list[str], threshold: float = 0.72) -> float:
     return len(tokens) / avg_factors
 
 
+def _quantile(sorted_xs: list, q: float) -> float:
+    if not sorted_xs:
+        return 0.0
+    if len(sorted_xs) == 1:
+        return float(sorted_xs[0])
+    pos = q * (len(sorted_xs) - 1)
+    lo = int(pos)
+    hi = min(lo + 1, len(sorted_xs) - 1)
+    frac = pos - lo
+    return float(sorted_xs[lo] * (1 - frac) + sorted_xs[hi] * frac)
+
+
 def sentence_features(sentences: list[str]) -> dict[str, float]:
     if not sentences:
         return {
             "sentence_count": 0, "mean_sent_len": 0.0, "stdev_sent_len": 0.0,
             "max_sent_len": 0, "short_sent_ratio": 0.0, "long_sent_ratio": 0.0,
             "comma_per_sentence": 0.0,
+            "sent_len_p25": 0.0, "sent_len_p50": 0.0,
+            "sent_len_p75": 0.0, "sent_len_p90": 0.0,
         }
     lens = [len(tokenize(s)) for s in sentences]
     n = len(lens)
@@ -245,6 +291,7 @@ def sentence_features(sentences: list[str]) -> dict[str, float]:
     short = sum(1 for x in lens if x < 8) / n
     long_ = sum(1 for x in lens if x > 25) / n
     commas_per_sent = sum(s.count(",") for s in sentences) / n
+    sorted_lens = sorted(lens)
     return {
         "sentence_count": n,
         "mean_sent_len": mean,
@@ -253,6 +300,10 @@ def sentence_features(sentences: list[str]) -> dict[str, float]:
         "short_sent_ratio": short,
         "long_sent_ratio": long_,
         "comma_per_sentence": commas_per_sent,
+        "sent_len_p25": _quantile(sorted_lens, 0.25),
+        "sent_len_p50": _quantile(sorted_lens, 0.50),
+        "sent_len_p75": _quantile(sorted_lens, 0.75),
+        "sent_len_p90": _quantile(sorted_lens, 0.90),
     }
 
 
@@ -444,8 +495,10 @@ def analyze(text: str) -> dict:
     features.update({k: round(v, 4) for k, v in readability(tokens, sentences).items()})
     features.update({k: round(v, 4) for k, v in function_word_rates(tokens, n_words).items()})
 
-    pos = pos_proxies(tokens)
+    spacy_pos = _spacy_pos_counts(text)
+    pos = spacy_pos if spacy_pos is not None else pos_proxies(tokens)
     features["formality_f_score"] = round(heylighen_f_score(pos, n_words), 3)
+    features["formality_source"] = "spacy" if spacy_pos is not None else "suffix_proxy"
     features["passive_per1k"] = round(passive_proxy_rate(text, n_words), 3)
 
     features.update({k: round(v, 4) for k, v in tone_metrics(tokens, text_lower, n_words).items()})
