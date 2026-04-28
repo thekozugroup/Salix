@@ -510,6 +510,52 @@ class TestEdgeCases(unittest.TestCase):
         agg = aggregate([s_empty, s_normal])
         self.assertGreater(agg["total_word_count"], 0)
 
+    def test_pos_ngrams_present_or_empty(self):
+        """POS n-grams should be present in stats but may be empty when
+        spaCy isn't installed; the keys themselves must always exist."""
+        s = analyze(SAMPLE_FORMAL)
+        self.assertIn("pos_bigrams", s)
+        self.assertIn("pos_trigrams", s)
+        # If spaCy is loaded the lists are non-empty; if not, []
+        from lib.stats import _get_spacy_nlp
+        if _get_spacy_nlp() is not None:
+            self.assertGreater(len(s["pos_bigrams"]), 0)
+        else:
+            self.assertEqual(s["pos_bigrams"], [])
+
+    def test_spacy_load_is_lazy(self):
+        """Importing lib.stats must NOT trigger the spaCy model load.
+        The load happens on first call to a function that needs POS info."""
+        # Force-reset module state to test the lazy path.
+        import lib.stats as _ls
+        _ls._SPACY_NLP = None
+        _ls._SPACY_LOAD_ATTEMPTED = False
+        # Calling tokenize / yule_k / mtld must not load spaCy
+        _ls.tokenize("hello world")
+        self.assertFalse(_ls._SPACY_LOAD_ATTEMPTED)
+        # Calling _spacy_pos_counts triggers the lazy load attempt
+        _ls._spacy_pos_counts("test")
+        self.assertTrue(_ls._SPACY_LOAD_ATTEMPTED)
+
+    def test_real_corpus_validation_mode_dispatches(self):
+        """attribution_check_real should run end-to-end on a tiny synthetic
+        author tree (mode is real-corpus; we pre-create the files)."""
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.validate import attribution_check_real  # type: ignore
+
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "corpora"
+            for author_id, sample in [("a", SAMPLE_FORMAL), ("b", SAMPLE_CASUAL)]:
+                ad = corpus / author_id
+                ad.mkdir(parents=True)
+                for i in range(4):
+                    (ad / f"doc{i}.txt").write_text((sample + "\n") * 4)
+            result = attribution_check_real(corpus)
+            self.assertEqual(result["mode"], "real_corpus")
+            self.assertEqual(result["authors"], 2)
+            self.assertGreaterEqual(result["accuracy"], 0.5)
+
     def test_max_file_bytes_rejected(self):
         from lib.io_utils import MAX_FILE_BYTES
         from lib.io_utils import load_text as _load

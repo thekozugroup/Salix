@@ -1,31 +1,36 @@
 #!/usr/bin/env python3
 """Validation harness — empirical evidence Salix's distance metric works.
 
-Three checks, executed in order:
+**Caveat on the synthetic test below.** The default mode generates corpora
+from style knobs that overlap with Salix's own measured features (sentence
+length, comma rate, passive rate, hedge rate, vocabulary register). The
+attribution result therefore confirms only that the implementation matches
+the generator — not that the metric distinguishes real authors. Real-corpus
+validation (PAN-13/14 closed-set, Federalist papers, Reuters_50_50) is the
+honest test; that pathway is supported via the --corpus-dir flag.
 
-  1. **Attribution accuracy** (PAN-style): generate synthetic corpora from
-     N pseudo-authors with controllable style knobs (sentence-length
-     distribution, comma rate, hedge rate, vocab pool). For each held-out
-     document, compute distance to every author's benchmark; the
-     min-distance author is the predicted attribution. Report overall
-     accuracy and per-author confusion. Targets >80% with 5 authors and
-     adequate sample size — well above the 20% chance baseline.
+Three checks, in order:
 
-  2. **Topic transfer**: each pseudo-author writes about two topics. Train
-     the benchmark on topic A, test on topic B. Confirms the topic-blind
-     fingerprint generalizes (the whole point of function-word + char-ngram
-     features over content).
+  1. **Attribution accuracy** (closed-set, min-distance classification):
+     for each held-out document, predict the author whose benchmark is
+     closest. Report overall accuracy and per-author confusion. Synthetic
+     mode is a sanity check — real-corpus mode is the meaningful number.
 
-  3. **Stability**: bootstrap the benchmark (leave-one-document-out across
-     samples) and report the mean per-feature drift. A reliable fingerprint
-     should be stable to within roughly the empirical sigma at this corpus
-     size.
+  2. **Topic transfer**: train on topic A, test on topic B. Confirms the
+     topic-blind fingerprint generalizes (the point of function-word +
+     char-n-gram + Burrows features over raw vocabulary).
+
+  3. **Stability**: leave-one-document-out across samples; per-feature
+     drift relative to the full-corpus benchmark. Honest bound on how much
+     the fingerprint moves under data perturbation.
+
+Real-corpus mode: pass `--corpus-dir validation/corpora/` where each
+sub-directory is one author and contains 4+ .txt/.md files. The harness
+holds out one document per author and reports attribution accuracy.
 
 Usage:
     python3 scripts/validate.py [--seed 0] [--authors 5] [--docs-per-author 6]
-                                [--out validation/results.md]
-
-Run from the Salix root.
+                                [--corpus-dir <dir>] [--out validation/results.md]
 """
 
 from __future__ import annotations
@@ -140,6 +145,53 @@ def generate_doc(profile: dict, topic: str, n_sentences: int, seed: int) -> str:
     return "\n\n".join(paragraphs)
 
 
+def attribution_check_real(corpus_dir: Path) -> dict:
+    """Attribution accuracy on a user-supplied real corpus.
+
+    Layout: corpus_dir/<author_label>/<doc_N>.{txt,md} with at least 3
+    documents per author (the harness holds out one). Returns the same
+    shape as `attribution_check` so render_report works for both.
+    """
+    from lib.io_utils import load_text
+    if not corpus_dir.is_dir():
+        raise SystemExit(f"Corpus dir not found: {corpus_dir}")
+    author_dirs = sorted(p for p in corpus_dir.iterdir() if p.is_dir())
+    if len(author_dirs) < 2:
+        raise SystemExit(f"Need >=2 author subdirectories under {corpus_dir}")
+
+    benchmarks: dict[str, dict] = {}
+    held_out: list[tuple[str, str]] = []
+    for ad in author_dirs:
+        files = sorted(list(ad.glob("*.txt")) + list(ad.glob("*.md")))
+        if len(files) < 3:
+            raise SystemExit(f"Author '{ad.name}' has only {len(files)} docs; need >=3")
+        held = files[-1]
+        train_stats = [analyze(load_text(f)) for f in files[:-1]]
+        benchmarks[ad.name] = aggregate(train_stats)
+        held_out.append((ad.name, str(held)))
+
+    correct = 0
+    confusion: dict[tuple[str, str], int] = {}
+    for true_label, doc_path in held_out:
+        target_stats = analyze(load_text(Path(doc_path)))
+        scores = {a: compute_gaps(target_stats, b)["total_distance"]
+                  for a, b in benchmarks.items()}
+        pred = min(scores, key=scores.get)
+        if pred == true_label:
+            correct += 1
+        confusion[(true_label, pred)] = confusion.get((true_label, pred), 0) + 1
+
+    return {
+        "mode": "real_corpus",
+        "authors": len(author_dirs),
+        "docs_per_author": "varies",
+        "accuracy": correct / max(len(held_out), 1),
+        "correct": correct,
+        "total": len(held_out),
+        "confusion": confusion,
+    }
+
+
 def attribution_check(authors: int, docs_per_author: int, seed: int,
                       sentences_per_doc: int = 60) -> dict:
     profiles = [_style_profile(seed + i * 1009) for i in range(authors)]
@@ -242,10 +294,21 @@ def stability_check(seed: int, sentences_per_doc: int = 60) -> dict:
 
 def render_report(attribution, topic_transfer, stability) -> str:
     lines = ["# Salix Validation Report", ""]
-    lines.append("## 1. Attribution accuracy")
+    mode = attribution.get("mode", "synthetic")
+    if mode == "synthetic":
+        lines.append("> ⚠️ Synthetic-corpus mode. The pseudo-author style knobs overlap with")
+        lines.append("> Salix's own measured features, so a high accuracy here demonstrates")
+        lines.append("> implementation correctness, not real authorship-attribution power.")
+        lines.append("> Run with --corpus-dir against PAN/Federalist/Reuters_50_50 for the")
+        lines.append("> meaningful number.")
+        lines.append("")
+    lines.append(f"## 1. Attribution accuracy ({mode})")
     lines.append("")
     lines.append(f"- Authors: **{attribution['authors']}**")
-    lines.append(f"- Documents per author (training set): **{attribution['docs_per_author'] - 1}**")
+    if mode == "synthetic":
+        lines.append(f"- Documents per author (training set): **{attribution['docs_per_author'] - 1}**")
+    else:
+        lines.append(f"- Documents per author: **{attribution['docs_per_author']}**")
     lines.append(f"- Held-out documents: **{attribution['total']}**")
     lines.append(f"- **Accuracy: {attribution['accuracy']:.1%}** "
                  f"({attribution['correct']}/{attribution['total']}; "
@@ -290,12 +353,18 @@ def main() -> int:
     ap.add_argument("--authors", type=int, default=5)
     ap.add_argument("--docs-per-author", type=int, default=6)
     ap.add_argument("--sentences-per-doc", type=int, default=60)
+    ap.add_argument("--corpus-dir", default=None,
+                    help="Real-corpus dir; subdirs are authors. Overrides synthetic mode.")
     ap.add_argument("--out", default=None, help="Optional path to save the report")
     args = ap.parse_args()
 
-    print("Running attribution check...")
-    attr = attribution_check(args.authors, args.docs_per_author, args.seed,
-                             args.sentences_per_doc)
+    if args.corpus_dir:
+        print(f"Running attribution check on real corpus: {args.corpus_dir}")
+        attr = attribution_check_real(Path(args.corpus_dir))
+    else:
+        print("Running attribution check (synthetic — see harness docstring on circularity)...")
+        attr = attribution_check(args.authors, args.docs_per_author, args.seed,
+                                 args.sentences_per_doc)
     print("Running topic-transfer check...")
     tt = topic_transfer_check(args.authors, args.seed, args.sentences_per_doc)
     print("Running stability check...")

@@ -111,22 +111,50 @@ cp ~/Documents/old_essays/*.md samples/
 ## Validation
 
 `./salix validate` exercises the metric against synthetic multi-author corpora
-where each pseudo-author has a distinct, controlled style profile (sentence
-length distribution, comma cadence, hedge / booster / discourse-marker
-rates, formal-vs-casual vocabulary, passive-voice rate). The harness reports:
+where each pseudo-author has a distinct, controlled style profile.
 
-1. **Attribution accuracy** — for each held-out document, predict the author
-   by minimum distance. With 5 authors, 5 training docs each, and 60-sentence
-   test docs, Salix scores **100% / 5** held-out documents (chance: 20%).
-   Scaling to 10 authors, accuracy stays at **90%** (chance: 10%).
-2. **Topic transfer** — train a benchmark on topic A, test on topic B. Same-
-   author distance averages **~0.9**; other-author averages **~3.6**. The
-   topic-blind features generalize as designed.
-3. **Stability** — leave-one-out across 8 samples shows mean drift **0.33**
-   and max drift **0.35**, well below typical attribution distances.
+> **⚠️ The synthetic harness is a sanity check, not authorship attribution.**
+> The pseudo-author knobs (sentence length, comma rate, hedge rate, register,
+> passive rate) overlap with Salix's own measured features, so a high
+> accuracy on synthetic data demonstrates *implementation correctness*, not
+> real attribution power. Reported synthetic numbers — 100% / 5 authors,
+> 90% / 10 authors, 4× same-vs-other distance separation, 0.33 mean LOO
+> drift — establish that the plumbing works.
 
-The harness lives at `scripts/validate.py` and is reproducible via
-`./salix validate --seed N`.
+For meaningful attribution evidence, run against real corpora:
+
+```bash
+mkdir -p validation/corpora
+# Drop one subdirectory per author with at least 3 .txt/.md docs each:
+#   validation/corpora/author_a/{doc1.txt,doc2.txt,doc3.txt,...}
+#   validation/corpora/author_b/...
+./salix validate --corpus-dir validation/corpora
+```
+
+Recommended public corpora:
+- PAN-13 / PAN-14 closed-set authorship attribution datasets
+- The Federalist Papers (Madison vs Hamilton disputed papers)
+- Reuters_50_50 (50 authors × 100 articles each, journalism)
+
+The harness holds out one document per author and reports min-distance
+classification accuracy. Real-corpus mode is the headline number we'd
+defend; the synthetic mode stays for CI smoke and refactor regression.
+
+## Concurrency model
+
+Salix is **single-writer / multi-reader** within a given `SALIX_HOME`:
+
+- `salix ingest` writes the benchmark JSON atomically (tempfile + os.replace);
+  partial-write corruption is impossible.
+- `salix compare` / `analyze` / `simulate` re-read the benchmark and retry
+  briefly on `JSONDecodeError` to ride out the rename window on slow
+  filesystems.
+- Two concurrent `ingest` runs writing the *same* profile will produce a
+  last-writer-wins outcome — give them distinct `--name` values, or use
+  separate `SALIX_HOME` directories.
+
+For multi-user / shared deployments, give each user their own
+`SALIX_HOME`. There is no file-locking guarantee.
 
 The actual rewrite step in production is performed by the host LLM, which
 reads each `top_gaps[].edit_hint` and applies minor edits. The skill

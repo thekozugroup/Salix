@@ -423,6 +423,8 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
         ("sentence_starters", "tvd"),
         ("char_3grams", "cosine"),
         ("char_4grams", "cosine"),
+        ("pos_bigrams", "tvd"),
+        ("pos_trigrams", "tvd"),
     ):
         t_list = target.get(list_feature, [])
         b_list = benchmark.get(list_feature, [])

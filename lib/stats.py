@@ -53,6 +53,32 @@ def _spacy_pos_counts(text: str) -> dict[str, int] | None:
             out[bucket] += 1
     return out
 
+
+def _spacy_pos_sequence(text: str) -> list[str] | None:
+    """Coarse POS tag sequence for n-gram features. Universal POS tags."""
+    nlp = _get_spacy_nlp()
+    if nlp is None:
+        return None
+    return [tok.pos_ for tok in nlp(text) if tok.pos_ != "SPACE"]
+
+
+def pos_ngrams(text: str, n: int = 2, top_k: int = 100) -> list[list]:
+    """POS-tag n-grams from spaCy. Returns [] if spaCy is unavailable.
+
+    POS n-grams capture syntactic shape independent of vocabulary —
+    Argamon-Koppel showed they boost authorship attribution beyond what
+    function-word n-grams alone provide.
+    """
+    seq = _spacy_pos_sequence(text)
+    if not seq or len(seq) < n:
+        return []
+    counter: Counter = Counter()
+    for i in range(len(seq) - n + 1):
+        counter[" ".join(seq[i:i + n])] += 1
+    total = sum(counter.values()) or 1
+    items = counter.most_common(top_k)
+    return [[g, round(c / total, 6)] for g, c in items]
+
 # Sentence boundary regex. Splits on . ! ? … (or sequences like ?! !? ...) followed
 # by whitespace then a non-whitespace token. Lowercase-prose-friendly: does not
 # require a capital next char. Abbreviations and decimal numbers are masked first.
@@ -531,6 +557,8 @@ def analyze(text: str) -> dict:
     features["char_3grams"] = char_ngrams(text, n=3, top_k=200)
     features["char_4grams"] = char_ngrams(text, n=4, top_k=200)
     features["mfw_top150"] = burrows_delta_features(tokens, n_words, top_k=150)
+    features["pos_bigrams"] = pos_ngrams(text, n=2, top_k=100)  # empty if no spaCy
+    features["pos_trigrams"] = pos_ngrams(text, n=3, top_k=100)
     features["sentence_starters"] = sentence_starters(sentences, top_k=15)
 
     return features
@@ -554,7 +582,8 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         return {}
 
     list_keys = {"fw_bigrams", "fw_trigrams", "sentence_starters",
-                 "char_3grams", "char_4grams", "mfw_top150"}
+                 "char_3grams", "char_4grams", "mfw_top150",
+                 "pos_bigrams", "pos_trigrams"}
 
     def _is_scalar(v):
         return isinstance(v, (int, float)) and not isinstance(v, bool)
@@ -602,6 +631,7 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         "fw_bigrams": 100, "fw_trigrams": 100,
         "char_3grams": 200, "char_4grams": 200,
         "mfw_top150": 150, "sentence_starters": 15,
+        "pos_bigrams": 100, "pos_trigrams": 100,
     }
     for lk in list_keys:
         if lk == "mfw_top150":
