@@ -161,5 +161,37 @@ class TestEndToEnd(unittest.TestCase):
             self.assertGreater(data["stats"]["total_word_count"], 500)
 
 
+class TestSimulator(unittest.TestCase):
+    """Validate the rewrite-loop mechanics using the rule-based simulator."""
+
+    def test_simulator_decreases_distance(self):
+        """Distance should decrease (or stay equal) across iterations."""
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import run_loop  # type: ignore
+
+        bench_stats = analyze((SAMPLE_FORMAL + "\n") * 4)
+        result = run_loop(TARGET_DRAFT, bench_stats, max_iter=8, threshold=0.15)
+
+        distances = [h["distance"] for h in result["history"]]
+        self.assertGreater(len(distances), 1, "loop should run more than 0 iterations")
+        for prev, cur in zip(distances, distances[1:]):
+            self.assertLessEqual(cur, prev + 0.001,
+                                 f"distance increased: {prev:.4f} -> {cur:.4f}")
+        self.assertLess(distances[-1], distances[0],
+                        "loop must reduce distance overall")
+
+    def test_simulator_halts_gracefully(self):
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import run_loop  # type: ignore
+
+        bench_stats = analyze((SAMPLE_FORMAL + "\n") * 4)
+        result = run_loop(TARGET_DRAFT, bench_stats, max_iter=8, threshold=0.15)
+        self.assertIn(result["stop_reason"],
+                      {"converged", "plateau", "max_iter",
+                       "no_applicable_rule_changed_text"})
+
+
 if __name__ == "__main__":
     unittest.main()
