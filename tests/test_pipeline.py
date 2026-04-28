@@ -608,9 +608,11 @@ class TestEdgeCases(unittest.TestCase):
                 for i in range(4):
                     (ad / f"doc{i}.txt").write_text((sample + "\n") * 4)
             result = attribution_check_real(corpus)
-            self.assertEqual(result["mode"], "real_corpus")
+            self.assertIn("real_corpus", result["mode"])
             self.assertEqual(result["authors"], 2)
             self.assertGreaterEqual(result["accuracy"], 0.5)
+            # k-fold: with 4 docs/author × 2 authors, total = 8 classifications
+            self.assertEqual(result["total"], 8)
 
     def test_max_file_bytes_rejected(self):
         from lib.io_utils import MAX_FILE_BYTES

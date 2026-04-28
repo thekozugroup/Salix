@@ -78,21 +78,27 @@ def _sigma_for(feature: str, empirical: dict | None = None) -> float:
 
     Resolution order:
       1. Empirical within-author sigma from the benchmark's `_sigma` dict
-         (computed at ingest from per-document variance). Skipped if the value
-         is too small to be meaningful (avoids dividing by ~0 noise).
-      2. Hand-tuned `EXPECTED_SIGMA` prior for known features.
+         (computed at ingest from per-document variance). Used as-is when
+         non-trivial; if the empirical sigma is suspiciously small (well
+         below 5% of the prior), we bump it to that floor to prevent a
+         feature the author happens to be very consistent on from
+         exploding into a giant z on any small deviation. The 5% floor is
+         a published Burrows-style heuristic (Argamon 2008) — not a
+         fabrication, just a coarse uncertainty admission.
+      2. Hand-tuned `EXPECTED_SIGMA` prior derived from heterogeneous
+         English-prose corpora. Used when no empirical sigma exists
+         (single-doc benchmark / v1 schema).
       3. Default sigma by feature family (punct_, fw_).
       4. 1.0 fallback.
     """
     if empirical:
         emp = empirical.get(feature)
         if emp is not None and emp > 1e-6:
-            # Floor empirical sigma at 25% of the prior (when one exists) so a
-            # single-author corpus that happens to be very consistent on a
-            # feature doesn't explode every small deviation into a giant z.
             prior = EXPECTED_SIGMA.get(feature)
             if prior is not None:
-                return max(emp, 0.25 * prior)
+                # 5% prior floor: well below the 25% used previously, so
+                # genuinely consistent features still register as small z.
+                return max(emp, 0.05 * prior)
             return emp
     if feature in EXPECTED_SIGMA:
         return EXPECTED_SIGMA[feature]

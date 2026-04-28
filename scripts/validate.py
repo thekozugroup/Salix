@@ -145,12 +145,17 @@ def generate_doc(profile: dict, topic: str, n_sentences: int, seed: int) -> str:
     return "\n\n".join(paragraphs)
 
 
-def attribution_check_real(corpus_dir: Path) -> dict:
+def attribution_check_real(corpus_dir: Path, kfold: bool = True) -> dict:
     """Attribution accuracy on a user-supplied real corpus.
 
     Layout: corpus_dir/<author_label>/<doc_N>.{txt,md} with at least 3
-    documents per author (the harness holds out one). Returns the same
-    shape as `attribution_check` so render_report works for both.
+    documents per author. By default (kfold=True), runs leave-one-out per
+    author: each author's docs are held out one at a time, the rest become
+    that author's training set, and every other author's full set is the
+    benchmark. Reports total accuracy across all folds.
+
+    With kfold=False, a single rightmost document per author is held out
+    (the original behavior).
     """
     from lib.io_utils import load_text
     if not corpus_dir.is_dir():
@@ -159,35 +164,55 @@ def attribution_check_real(corpus_dir: Path) -> dict:
     if len(author_dirs) < 2:
         raise SystemExit(f"Need >=2 author subdirectories under {corpus_dir}")
 
-    benchmarks: dict[str, dict] = {}
-    held_out: list[tuple[str, str]] = []
+    author_files: dict[str, list[Path]] = {}
     for ad in author_dirs:
         files = sorted(list(ad.glob("*.txt")) + list(ad.glob("*.md")))
         if len(files) < 3:
             raise SystemExit(f"Author '{ad.name}' has only {len(files)} docs; need >=3")
-        held = files[-1]
-        train_stats = [analyze(load_text(f)) for f in files[:-1]]
-        benchmarks[ad.name] = aggregate(train_stats)
-        held_out.append((ad.name, str(held)))
+        author_files[ad.name] = files
 
     correct = 0
+    total = 0
     confusion: dict[tuple[str, str], int] = {}
-    for true_label, doc_path in held_out:
-        target_stats = analyze(load_text(Path(doc_path)))
+
+    def _classify(target_path: Path, true_label: str,
+                  held_idx: int | None) -> str:
+        nonlocal correct, total
+        # Build benchmarks per author with the held-out doc removed for the
+        # true author; every other author uses all their docs.
+        benchmarks: dict[str, dict] = {}
+        for label, files in author_files.items():
+            if label == true_label and held_idx is not None:
+                train_files = [f for i, f in enumerate(files) if i != held_idx]
+            else:
+                train_files = files
+            train_stats = [analyze(load_text(f)) for f in train_files]
+            benchmarks[label] = aggregate(train_stats)
+        target_stats = analyze(load_text(target_path))
         scores = {a: compute_gaps(target_stats, b)["total_distance"]
                   for a, b in benchmarks.items()}
         pred = min(scores, key=scores.get)
         if pred == true_label:
             correct += 1
+        total += 1
         confusion[(true_label, pred)] = confusion.get((true_label, pred), 0) + 1
+        return pred
+
+    if kfold:
+        for label, files in author_files.items():
+            for held_idx, held in enumerate(files):
+                _classify(held, label, held_idx)
+    else:
+        for label, files in author_files.items():
+            _classify(files[-1], label, len(files) - 1)
 
     return {
-        "mode": "real_corpus",
+        "mode": "real_corpus" + (" (LOO k-fold)" if kfold else ""),
         "authors": len(author_dirs),
         "docs_per_author": "varies",
-        "accuracy": correct / max(len(held_out), 1),
+        "accuracy": correct / max(total, 1),
         "correct": correct,
-        "total": len(held_out),
+        "total": total,
         "confusion": confusion,
     }
 
