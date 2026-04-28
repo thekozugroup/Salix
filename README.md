@@ -38,35 +38,39 @@ available as a triggered skill.
 
 ## Use directly (without Claude)
 
+The unified CLI bundles every step. Run `./salix help` for the full reference.
+
 ```bash
+# 0. See current state (profiles, samples, what to do next)
+./salix status
+
 # 1. Drop writing samples in samples/
 cp ~/Documents/old_essays/*.md samples/
 
-# 2. Build benchmark
-python3 scripts/ingest.py --samples samples/ --out benchmarks/default.json
+# 2. Build benchmark from those samples
+./salix ingest --name default
 
 # 3. Inspect the fingerprint
-python3 scripts/visualize.py benchmarks/default.json
+./salix benchmark --profile default
 
 # 4. Analyze a draft
-python3 scripts/analyze.py --pretty draft.md > draft.stats.json
-python3 scripts/visualize.py draft.stats.json
+./salix analyze draft.md
 
-# 5. See the gap
-python3 scripts/compare.py --target-text draft.md \
-    --benchmark benchmarks/default.json --pretty > gap.json
-python3 scripts/visualize.py gap.json
+# 5. See the gap (human-readable)
+./salix gap draft.md --profile default
+
+# 5b. Get the gap as JSON for downstream tooling
+./salix compare draft.md --profile default --json --pretty > gap.json
+
+# 6. Dry-run the rewrite loop using rule-based edits (no LLM required)
+./salix simulate draft.md --profile default --verbose --out rewritten.md
 ```
 
-The actual rewrite step is performed by the host LLM, which reads
-`gap.json`'s `top_gaps[].suggestion` strings and applies minor edits.
-The skill instructions in `SKILL.md` describe that loop.
-
-## Tests
-
-```bash
-python3 -m unittest discover tests/
-```
+The actual rewrite step in production is performed by the host LLM, which
+reads each `top_gaps[].edit_hint` and applies minor edits. The skill
+instructions in `SKILL.md` describe that loop. `salix simulate` exists to
+validate the loop mechanics (distance decreases, loop halts) before
+investing LLM calls.
 
 ## Why Python instead of Rust
 
@@ -85,10 +89,23 @@ The original sketch proposed Rust. It was rejected for v1 because:
 
 ```
 SKILL.md                  # skill orchestration prompt
-scripts/                  # CLI entry points
+salix                     # unified CLI (preferred entry point)
+scripts/                  # individual CLI entry points
 lib/                      # extraction, comparison, IO
 benchmarks/               # saved profiles
 samples/                  # raw writing inputs
-tests/                    # smoke tests
+tests/                    # smoke + regression tests
 install.sh                # symlink helper
+CHANGELOG.md              # version history
 ```
+
+## Tests
+
+```bash
+python3 -m unittest discover tests/
+```
+
+21 tests cover tokenization, segmentation (including lowercase prose,
+decimals, abbreviations), lexical metrics, formality contrast, aggregation,
+distance properties, edit-hint coverage, CLI dispatch, and the
+monotonic-distance invariant of the rewrite loop.

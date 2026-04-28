@@ -21,57 +21,64 @@ If the user provides a draft *and* references their style without a benchmark fi
 
 ```
 SKILL.md                  # this file — orchestration instructions
+salix                     # unified CLI (the only entry point you usually need)
 scripts/
   ingest.py               # samples/ → benchmarks/<name>.json
   analyze.py              # single text → stats JSON
   compare.py              # stats vs benchmark → gap report (JSON)
   visualize.py            # render benchmark/stats as ASCII tables
+  simulate_loop.py        # dry-run the iterative loop with rule-based edits
 lib/
   stats.py                # feature extraction
   function_words.py       # closed-class allowlist (topic filter)
   tone.py                 # tone/hedging/formality heuristics
-  distance.py             # weighted z-score L1 comparison
+  distance.py             # weighted z-score L1 comparison + edit hints
   io_utils.py             # text loading + cleaning
 benchmarks/               # saved author profiles (JSON)
 samples/                  # raw writing samples (input)
-tests/                    # smoke tests
+tests/                    # smoke tests + regression tests
 ```
 
 All scripts are pure Python 3.9+ stdlib. No pip installs required.
+
+The unified `./salix` CLI is the preferred entry point. Run `./salix help`
+for the full subcommand reference. The underlying `scripts/*.py` remain
+available for direct use.
 
 ## Workflow
 
 ### 1. First run — Build the benchmark
 
-If `benchmarks/default.json` does not exist:
+If `benchmarks/default.json` does not exist (check with `./salix status`):
 
 1. Tell the user: *"No style profile found. Drop your prior writing into `samples/` (any mix of `.txt`, `.md`) or paste samples and I'll create files. I need at least ~3,000 words for a stable fingerprint; 10,000+ is better."*
 2. After samples are in place, run:
    ```
-   python3 scripts/ingest.py --samples samples/ --out benchmarks/default.json --name "default"
+   ./salix ingest --name default
    ```
-3. Then run `python3 scripts/visualize.py benchmarks/default.json` and present the table to the user as the captured fingerprint.
+3. Then run `./salix benchmark --profile default` and present the table to the user as the captured fingerprint.
 4. Confirm: *"Benchmark saved. Ready to rewrite documents in this style."*
 
-If the user wants multiple personas (formal vs casual), pass `--name <persona>` and store under `benchmarks/<persona>.json`.
+If the user wants multiple personas (formal vs casual), pass `--name <persona>` to `ingest`. Profiles are then selectable via `--profile <persona>` on every other subcommand.
 
 ### 2. Analyze a target document
 
 When the user provides a target document:
 1. Save the draft to a working file (e.g. `/tmp/salix_target.md`).
-2. Run `python3 scripts/analyze.py /tmp/salix_target.md > /tmp/salix_target.stats.json`.
-3. Run `python3 scripts/visualize.py /tmp/salix_target.stats.json` and show the user.
+2. Run `./salix analyze /tmp/salix_target.md` to show the human-readable stats table, or `./salix analyze /tmp/salix_target.md --json --pretty > /tmp/salix_target.stats.json` to capture the raw stats for later steps.
 
 ### 3. Compare against benchmark
 
 ```
-python3 scripts/compare.py \
-  --target /tmp/salix_target.stats.json \
-  --benchmark benchmarks/default.json \
-  --out /tmp/salix_gap.json
+./salix compare /tmp/salix_target.md --profile default --json --pretty > /tmp/salix_gap.json
+./salix gap /tmp/salix_target.md --profile default       # human-readable
 ```
 
-`compare.py` prints a ranked gap report: each feature's z-distance from the benchmark, with direction ("too high" / "too low") and a human-readable suggestion. The top-N gaps drive the next edit pass.
+The gap report is a ranked list of feature deviations. Each top-N entry includes:
+- `z_distance` — signed normalized deviation
+- `direction` — "raise" or "lower" relative to the benchmark
+- `suggestion` — one-line description of the gap
+- `edit_hint` — a concrete instruction the host LLM can act on directly
 
 ### 4. Iterative rewrite loop
 
@@ -79,13 +86,15 @@ This is the core orchestration the host model performs. Each iteration is a *min
 
 ```
 for iter in 1..6:
-    gap = compare(target_stats, benchmark)
+    gap = ./salix compare TARGET --profile P --json
     if gap.total_distance < 0.15:
         break
-    suggestions = gap.top_gaps[:3]   # focus only on top 3 per pass
-    target_text = host_model_edit(target_text, suggestions)
-    target_stats = analyze(target_text)
+    instructions = [g.edit_hint for g in gap.top_gaps[:3] if g.edit_hint]
+    target_text = host_model_edit(target_text, instructions)
+    # save target_text back to disk before re-comparing
 ```
+
+Use `./salix simulate TARGET --profile P --verbose` to dry-run this loop with rule-based edits (no LLM). It validates the loop mechanics — distance must decrease across iterations and the loop must halt gracefully — before you invest LLM calls.
 
 **Constraints during edits:**
 - Do not change the document's facts, structure, or section ordering.
@@ -96,7 +105,7 @@ for iter in 1..6:
 ### 5. Final QA
 
 After the loop:
-1. Run `compare.py` one final time and show the user the before/after distance.
+1. Run `./salix compare FINAL --profile P --json` one final time and show the user the before/after distance.
 2. Show a 5-row diff summary: *original sentence count, final sentence count, mean sentence length delta, hedging delta, formality delta.*
 3. Save the final document and tell the user the path.
 
