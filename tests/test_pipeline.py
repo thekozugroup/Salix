@@ -55,6 +55,23 @@ class TestStats(unittest.TestCase):
         s = split_sentences("Mr. Smith arrived. He was late. So what?")
         self.assertEqual(len(s), 3)
 
+    def test_split_sentences_lowercase_prose(self):
+        # Casual / unedited prose without capitals must still segment.
+        s = split_sentences("ok so here's the thing. i've been using it. it works fine.")
+        self.assertEqual(len(s), 3)
+
+    def test_split_sentences_protects_decimals(self):
+        s = split_sentences("The value rose to 3.14 today. Then it fell.")
+        self.assertEqual(len(s), 2)
+
+    def test_split_sentences_handles_ellipsis_and_interrobang(self):
+        s = split_sentences("Wait... what? Really?! No.")
+        self.assertEqual(len(s), 4)
+
+    def test_split_sentences_protects_abbreviations(self):
+        s = split_sentences("She earned a Ph.D. last year. Now she teaches.")
+        self.assertEqual(len(s), 2)
+
     def test_mtld(self):
         v = mtld(tokenize(SAMPLE_FORMAL))
         self.assertGreater(v, 0)

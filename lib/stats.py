@@ -10,14 +10,16 @@ from typing import Iterable
 from .function_words import FUNCTION_WORDS
 from .tone import tone_metrics, heylighen_f_score
 
-# Sentence boundary regex. Naive but fast: split on . ! ? followed by whitespace
-# and a capital. Avoids splitting on common abbreviations.
+# Sentence boundary regex. Splits on . ! ? … (or sequences like ?! !? ...) followed
+# by whitespace then a non-whitespace token. Lowercase-prose-friendly: does not
+# require a capital next char. Abbreviations and decimal numbers are masked first.
 _ABBR = {
     "mr", "mrs", "ms", "dr", "prof", "sr", "jr", "st", "vs", "etc",
     "e.g", "i.e", "cf", "fig", "vol", "no", "p", "pp", "ch", "inc", "ltd",
-    "co", "corp", "u.s", "u.k",
+    "co", "corp", "u.s", "u.k", "ph.d", "m.d", "a.m", "p.m",
 }
-SENT_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z\"'(])")
+SENT_SPLIT_RE = re.compile(r"(?<=[.!?…])[\"')\]]?\s+(?=\S)")
+DECIMAL_RE = re.compile(r"(\d)\.(\d)")
 WORD_RE = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?")
 SYLLABLE_VOWEL_RE = re.compile(r"[aeiouy]+", re.IGNORECASE)
 
@@ -37,16 +39,23 @@ PUNCT_TRACKED = [
 
 
 def split_sentences(text: str) -> list[str]:
-    """Sentence segmentation with abbreviation guard."""
-    # Mask known abbreviations so the splitter doesn't cut after them.
-    masked = text
+    """Sentence segmentation with abbreviation + decimal guard.
+
+    Handles lowercase prose (does not require capital after the boundary), runs
+    of terminators (?!, !?, ...), and protects abbreviations and decimal numbers
+    from spurious splits.
+    """
+    # Protect decimals: 3.14 -> 3·14 (interpunct placeholder, restored later)
+    masked = DECIMAL_RE.sub(r"\1·\2", text)
+    # Protect known abbreviations (case-insensitive).
     for abbr in _ABBR:
         masked = re.sub(
-            rf"\b{re.escape(abbr)}\.\s",
-            lambda m, a=abbr: f"{a}· ",  # interpunct as placeholder
+            rf"\b{re.escape(abbr)}\.(?=\s|$)",
+            lambda m, a=abbr: f"{a}·",
             masked,
             flags=re.IGNORECASE,
         )
+    # Collapse runs of terminators: "..." stays, but "?!" or "!!" should still split.
     parts = SENT_SPLIT_RE.split(masked)
     sents = [p.replace("·", ".").strip() for p in parts if p.strip()]
     return sents
