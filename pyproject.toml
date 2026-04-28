@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "salix-skill"
-version = "0.7.0"
+version = "0.9.0"
 description = "Personal writing-style fingerprinting and iterative rewrite skill for Claude Code."
 readme = "README.md"
 license = { text = "MIT" }

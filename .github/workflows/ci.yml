@@ -33,6 +33,18 @@ jobs:
       - run: pip install "ruff>=0.5"
       - run: ruff check lib/ scripts/ salix tests/
 
+  deprecation-warnings:
+    name: Deprecation-warning sentinel
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Run tests with DeprecationWarning as error
+        run: python -W error::DeprecationWarning -m unittest discover -v tests/
+
   validate:
     name: Empirical validation
     runs-on: ubuntu-latest

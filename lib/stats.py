@@ -252,6 +252,11 @@ _PYPHEN_ATTEMPTED = False
 
 
 def _get_pyphen():
+    """Lazily load pyphen for accurate hyphenation-based syllable counts.
+    Falls back to the vowel-group heuristic when pyphen is unavailable.
+    Emits a one-time UserWarning so users get a nudge to `pip install pyphen`
+    for fidelity on Latinate vocabulary in the readability metrics."""
+    import warnings
     global _PYPHEN_DIC, _PYPHEN_ATTEMPTED
     if _PYPHEN_ATTEMPTED:
         return _PYPHEN_DIC
@@ -260,6 +265,12 @@ def _get_pyphen():
         _PYPHEN_DIC = pyphen.Pyphen(lang="en_US")
     except ImportError:
         _PYPHEN_DIC = None
+        warnings.warn(
+            "pyphen not installed — syllable counts (and FK/Fog/ARI scores "
+            "derived from them) use a coarse vowel-group heuristic. Install "
+            "with `pip install pyphen` for hyphenation-dictionary accuracy.",
+            stacklevel=3,
+        )
     _PYPHEN_ATTEMPTED = True
     return _PYPHEN_DIC
 

@@ -534,7 +534,9 @@ class TestEdgeCases(unittest.TestCase):
         load_count = [0]
 
         def fake_load(*a, **kw):
+            import time as _time
             load_count[0] += 1
+            _time.sleep(0.01)  # widen race window so a buggy lock would fail
             return object()  # any non-None sentinel
 
         # Reset module state
@@ -590,6 +592,31 @@ class TestEdgeCases(unittest.TestCase):
                 self.skipTest("symlinks unsupported")
             text = _lc(corpus)
             self.assertNotIn("LEAKED CONTENT MARKER ZZZZ", text)
+
+    def test_cmd_status_handles_missing_required_keys(self):
+        """A benchmark file with valid JSON but missing the `stats` key
+        must not crash status — the broadened exception list should
+        catch KeyError / ValueError too."""
+        import os as _os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "benchmarks").mkdir()
+            (home / "samples").mkdir()
+            # Valid JSON but no `stats` field — would KeyError if naive.
+            (home / "benchmarks" / "bare.json").write_text(
+                '{"schema_version": 2, "name": "bare"}'
+            )
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status"],
+                capture_output=True, text=True,
+                env={**_os.environ, "SALIX_HOME": str(home), "PYTHONPATH": str(ROOT)},
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            # Either status reports a valid (but empty-stats) benchmark, or
+            # surfaces it as unreadable. Either is graceful — what we
+            # forbid is a stack trace / non-zero exit.
+            self.assertIn("bare", res.stdout)
 
     def test_cmd_status_handles_corrupt_benchmark(self):
         """salix status must not crash on a corrupt benchmark file."""

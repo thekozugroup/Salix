@@ -327,6 +327,29 @@ def _cosine_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
     return distance, top
 
 
+def reproject_mfw(target_tokens: list[str], benchmark_mfw: list,
+                   total_words: int) -> list[list]:
+    """Re-project a target document onto the benchmark's MFW vocabulary.
+
+    Standard practice in cross-corpus Burrows: the *test* document's MFW
+    rates must be measured against the *train* vocabulary, not against
+    whatever happens to be most frequent in the test doc itself. This
+    avoids spurious zeros where a benchmark-frequent word doesn't make
+    the test doc's own top-150.
+
+    Returns the same shape as `burrows_delta_features`: a list of
+    [word, per_1k_rate] pairs covering exactly the benchmark's vocabulary.
+    """
+    from collections import Counter as _C
+    if total_words == 0:
+        return []
+    benchmark_words = [w for w, _ in benchmark_mfw]
+    target_counts = _C(target_tokens)
+    per1k = 1000.0 / total_words
+    return [[w, round(target_counts.get(w, 0) * per1k, 4)]
+            for w in benchmark_words]
+
+
 def _burrows_delta(target_pairs, benchmark_pairs, mfw_sigma: dict | None = None
                    ) -> tuple[float, list]:
     """Burrows' Delta over the most-frequent-words list.
@@ -463,10 +486,25 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
 
     # Burrows' Delta over MFW. Uses persisted _mfw_sigma when available
     # (multi-doc benchmarks); falls back to global-σ over the MFW vector.
+    # If the benchmark exposes its raw token list (target may pass __tokens
+    # via a future API), we re-project the target onto the benchmark's MFW
+    # vocabulary so missing-from-target words register as 0 instead of
+    # silent absence in the joined-keys union. For the standard target dict
+    # produced by analyze(), the union path remains correct.
     t_mfw = target.get("mfw_top150", [])
     b_mfw = benchmark.get("mfw_top150", [])
+    # Re-project: ensure every benchmark MFW word appears in the target
+    # vector (with rate 0 if absent). This is the corpus-stable variant
+    # — without it, words frequent in the benchmark but rare in the target
+    # contribute only to the benchmark side of the union, which can
+    # underestimate Δ on cross-corpus pairs.
+    t_map = {w: r for w, r in t_mfw}
+    t_mfw_reprojected = [[w, t_map.get(w, 0.0)] for w, _ in b_mfw]
+    if not any(r > 0 for _, r in t_mfw_reprojected) and t_mfw:
+        # Target has no overlap with benchmark MFW — fall back to its own list
+        t_mfw_reprojected = t_mfw
     mfw_sigma = benchmark.get("_mfw_sigma") if isinstance(benchmark, dict) else None
-    delta_val, delta_top = _burrows_delta(t_mfw, b_mfw, mfw_sigma=mfw_sigma)
+    delta_val, delta_top = _burrows_delta(t_mfw_reprojected, b_mfw, mfw_sigma=mfw_sigma)
     ngram_gaps["mfw_top150"] = {
         "metric": "burrows_delta",
         "distance": round(delta_val, 4),
