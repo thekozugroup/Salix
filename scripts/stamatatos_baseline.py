@@ -19,12 +19,13 @@ Layout: corpus_dir/<author>/<doc_N>.{txt,md}
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import math
 import re
 from collections import Counter
 from pathlib import Path
+
+import _path  # noqa: F401
 
 from lib.io_utils import load_text
 

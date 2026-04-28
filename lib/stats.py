@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import math
 import re
+
+# Optional spaCy: lazily loaded on first call so importing lib.stats stays
+# fast (no 200-500 ms model-load tax on every CLI subcommand). The model is
+# loaded once per process and cached.
+import threading as _threading
 from collections import Counter
 from collections.abc import Iterable
 
 from .function_words import FUNCTION_WORDS
 from .tone import heylighen_f_score, tone_metrics
 
-# Optional spaCy: lazily loaded on first call so importing lib.stats stays
-# fast (no 200-500 ms model-load tax on every CLI subcommand). The model is
-# loaded once per process and cached.
-import threading as _threading
 _SPACY_NLP: object | None = None
 _SPACY_LOAD_ATTEMPTED = False
 _SPACY_LOCK = _threading.Lock()
