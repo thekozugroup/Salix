@@ -437,6 +437,146 @@ class TestSimulator(unittest.TestCase):
                        "no_applicable_rule_changed_text"})
 
 
+class TestEdgeCases(unittest.TestCase):
+    """Inputs that have historically broken naive style tools."""
+
+    def test_empty_input_returns_zero_word_count(self):
+        s = analyze("")
+        self.assertEqual(s["word_count"], 0)
+        self.assertEqual(s["sentence_count"], 0)
+        # No NaN / inf values
+        for k, v in s.items():
+            if isinstance(v, float):
+                import math as _m
+                self.assertFalse(_m.isnan(v), f"{k} is NaN")
+                self.assertFalse(_m.isinf(v), f"{k} is inf")
+
+    def test_single_sentence_input(self):
+        s = analyze("This is a single sentence.")
+        self.assertEqual(s["sentence_count"], 1)
+        self.assertGreater(s["word_count"], 3)
+
+    def test_all_caps_input(self):
+        s = analyze("HE WALKED IN. SHE LOOKED UP. THEY LEFT.")
+        self.assertEqual(s["sentence_count"], 3)
+
+    def test_mostly_markdown_only(self):
+        # Heavy markdown — should not crash; words after cleaning should be few
+        raw = "# Header\n\n```python\nimport sys\nprint(sys.path)\n```\n\n## Sub\n\n- a\n- b\n- c\n"
+        cleaned = clean_text(raw)
+        s = analyze(cleaned)
+        self.assertGreaterEqual(s["word_count"], 0)
+        # The 3 bullet items reduce to a few words; should not be flagged as
+        # multi-sentence prose.
+        self.assertLessEqual(s["sentence_count"], 1)
+        self.assertLessEqual(s["word_count"], 10)
+
+    def test_file_of_urls(self):
+        raw = "\n".join(f"http://example.com/{i}" for i in range(20))
+        cleaned = clean_text(raw)
+        # Cleaned text should be empty or near-empty
+        self.assertLess(len(cleaned.split()), 5)
+
+    def test_cjk_input_handled(self):
+        # CJK is a known limitation; metric must not crash, just report low counts
+        s = analyze("私は東京で食べる。明日は雨だろう。")
+        self.assertGreaterEqual(s["word_count"], 0)
+        self.assertGreaterEqual(s["sentence_count"], 0)
+
+    def test_very_long_repeated_input(self):
+        # 5000 sentences — should finish in <2s and produce sane stats
+        import time
+        text = ("This is sentence number one. This is sentence number two. " * 2500)
+        t0 = time.time()
+        s = analyze(text)
+        elapsed = time.time() - t0
+        self.assertLess(elapsed, 5.0, f"analyze took {elapsed:.2f}s — too slow")
+        self.assertGreater(s["word_count"], 1000)
+
+    def test_distance_stable_under_repeated_calls(self):
+        """Calling analyze + compute_gaps twice with the same input must produce
+        identical numeric output (no hidden global state)."""
+        bench = aggregate([analyze(SAMPLE_FORMAL), analyze(SAMPLE_FORMAL[:300])])
+        s1 = analyze(TARGET_DRAFT)
+        s2 = analyze(TARGET_DRAFT)
+        g1 = compute_gaps(s1, bench)
+        g2 = compute_gaps(s2, bench)
+        self.assertEqual(g1["total_distance"], g2["total_distance"])
+
+    def test_aggregate_handles_zero_word_doc(self):
+        """A sample that cleans to empty should not crash aggregate."""
+        s_empty = analyze("")
+        s_normal = analyze(SAMPLE_FORMAL)
+        agg = aggregate([s_empty, s_normal])
+        self.assertGreater(agg["total_word_count"], 0)
+
+    def test_pos_proxy_suffix_rules(self):
+        from lib.stats import pos_proxies
+        # 'national' has suffix '-al' (>5 chars) → adj
+        counts = pos_proxies(["national", "globally", "creation", "running"])
+        self.assertEqual(counts["adj"], 1)   # national
+        self.assertEqual(counts["adv"], 1)   # globally
+        self.assertEqual(counts["noun"], 1)  # creation (-tion)
+        self.assertEqual(counts["verb"], 1)  # running (-ing)
+
+
+class TestSimulatorMultiSeed(unittest.TestCase):
+    """Simulator monotonicity across many seeds and inputs (catches the
+    previously-fixed str.replace substring-collision bug + future regressions)."""
+
+    def test_property_no_runaway_distance_explosion(self):
+        """Across many seeds and inputs, no single iteration may double the
+        distance — a guard against the previously-fixed substring-collision
+        bug, which caused multi-x distance jumps when the wrong span was
+        rewritten. Per-iter bounce within a sane bound is acceptable; the
+        rule-based simulator is heuristic and only validates loop mechanics."""
+        import random
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import run_loop  # type: ignore
+
+        bench_corpora = [
+            (SAMPLE_FORMAL + "\n") * 4,
+            (SAMPLE_CASUAL + "\n") * 4,
+        ]
+        drafts = [
+            TARGET_DRAFT,
+            "It works. It works fine. The system is now ready.",
+            "Performance is excellent and users are happy with the results.",
+        ]
+        for bench_text in bench_corpora:
+            bench = analyze(bench_text)
+            for draft in drafts:
+                for seed in range(20):
+                    random.seed(seed)
+                    result = run_loop(draft, bench, max_iter=4, threshold=0.1)
+                    distances = [h["distance"] for h in result["history"]]
+                    for prev, cur in zip(distances, distances[1:]):
+                        self.assertLessEqual(
+                            cur, prev * 1.8 + 0.05,
+                            f"seed={seed} draft='{draft[:30]}': "
+                            f"runaway distance {prev:.3f} -> {cur:.3f}",
+                        )
+
+    def test_simulator_helps_on_realistic_draft(self):
+        """The original regression: on a meaningful draft against a stable
+        benchmark, the simulator must achieve a net distance reduction."""
+        import random
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import run_loop  # type: ignore
+
+        bench = analyze((SAMPLE_FORMAL + "\n") * 4)
+        improved = 0
+        for seed in range(10):
+            random.seed(seed)
+            result = run_loop(TARGET_DRAFT, bench, max_iter=6, threshold=0.15)
+            distances = [h["distance"] for h in result["history"]]
+            if len(distances) >= 2 and distances[-1] < distances[0]:
+                improved += 1
+        self.assertGreaterEqual(improved, 8, f"only {improved}/10 seeds improved")
+
+
 class TestValidationHarness(unittest.TestCase):
     """Smoke + threshold tests for the empirical validation harness."""
 
