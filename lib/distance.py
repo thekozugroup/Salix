@@ -21,6 +21,9 @@ import math
 EXPECTED_SIGMA = {
     "ttr": 0.06,
     "mtld": 25.0,
+    "yule_k": 80.0,
+    "honore_r": 200.0,
+    "simpson_d": 0.05,
     "mean_word_len": 0.6,
     "long_word_ratio": 0.05,
     "mean_sent_len": 6.0,
@@ -57,6 +60,7 @@ WEIGHTS = {
     "tone": 1.3,
     "paragraph": 0.8,
     "ngrams": 1.1,
+    "burrows": 1.4,  # most-frequent-word Delta (Stamatatos-validated)
 }
 
 # Excluded from gap report (not directly editable, or dependent on length)
@@ -105,7 +109,8 @@ def _category_for(feature: str) -> str:
     if feature in {"mean_sent_len", "stdev_sent_len", "short_sent_ratio",
                    "long_sent_ratio", "comma_per_sentence"}:
         return "sentence_shape"
-    if feature in {"ttr", "mtld", "mean_word_len", "long_word_ratio"}:
+    if feature in {"ttr", "mtld", "mean_word_len", "long_word_ratio",
+                   "yule_k", "honore_r", "simpson_d"}:
         return "lexical"
     if feature in {"flesch_kincaid_grade", "gunning_fog", "ari"}:
         return "readability"
@@ -180,6 +185,22 @@ EDIT_HINTS: dict[tuple[str, str], str] = {
         "vocabulary.",
     ("long_word_ratio", "lower"):
         "Replace long words with shorter, more direct alternatives.",
+    ("yule_k", "lower"):
+        "Increase vocabulary diversity — use more distinct words; reduce "
+        "repetition of mid-frequency content terms.",
+    ("yule_k", "raise"):
+        "Reuse key terms more deliberately. Cut excessive synonym variation.",
+    ("honore_r", "raise"):
+        "Increase use of rare, distinctive words (hapax legomena) — single "
+        "occurrences of striking vocabulary.",
+    ("honore_r", "lower"):
+        "Reduce reliance on rare or showy words; favor a smaller, repeated "
+        "core vocabulary.",
+    ("simpson_d", "raise"):
+        "Increase lexical diversity at the token level — vary word choice "
+        "across the document.",
+    ("simpson_d", "lower"):
+        "Concentrate vocabulary; reuse the same nouns and verbs.",
     ("hedging_rate", "raise"):
         "Soften absolute claims with hedges: 'perhaps', 'rather', 'somewhat', "
         "'might', 'seems to', 'tends to'. Avoid declaring certainty.",
@@ -249,7 +270,7 @@ def _hint_for(feature: str, direction: str) -> str:
 
 
 def _distribution_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
-    """Symmetric distribution distance over n-gram lists. Returns (distance, top_diffs)."""
+    """Symmetric distribution distance (TVD) over frequency lists. Returns (distance, top_diffs)."""
     t_map = {k: v for k, v in target_pairs}
     b_map = {k: v for k, v in benchmark_pairs}
     keys = set(t_map) | set(b_map)
@@ -268,6 +289,71 @@ def _distribution_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
             "delta": round(d, 5)} for k, t, b, d in diffs[:8]]
     # divide by 2 for proper TVD-like scaling
     return total / 2.0, top
+
+
+def _cosine_distance(target_pairs, benchmark_pairs) -> tuple[float, list]:
+    """Cosine *distance* (1 - cosine similarity) over frequency lists."""
+    import math as _math
+    t_map = {k: v for k, v in target_pairs}
+    b_map = {k: v for k, v in benchmark_pairs}
+    keys = set(t_map) | set(b_map)
+    if not keys:
+        return 0.0, []
+    dot = sum(t_map.get(k, 0.0) * b_map.get(k, 0.0) for k in keys)
+    nt = _math.sqrt(sum(v * v for v in t_map.values()))
+    nb = _math.sqrt(sum(v * v for v in b_map.values()))
+    if nt == 0 or nb == 0:
+        return 1.0, []
+    sim = dot / (nt * nb)
+    sim = max(0.0, min(1.0, sim))
+    distance = 1.0 - sim
+    diffs = []
+    for k in keys:
+        t = t_map.get(k, 0.0)
+        b = b_map.get(k, 0.0)
+        diffs.append((k, t, b, abs(t - b)))
+    diffs.sort(key=lambda x: -x[3])
+    top = [{"item": k, "target": round(t, 5), "benchmark": round(b, 5),
+            "delta": round(d, 5)} for k, t, b, d in diffs[:8]]
+    return distance, top
+
+
+def _burrows_delta(target_pairs, benchmark_pairs, sigma_pairs=None) -> tuple[float, list]:
+    """Classic Burrows' Delta over the most-frequent-words list.
+
+    Δ = (1/V) * Σ |z_target_v - z_benchmark_v|
+    where z_x_v = (x_v - μ_v) / σ_v and μ, σ are computed over the corpus.
+    Without per-word σ from the benchmark, we use the corpus mean as μ and the
+    pooled stddev across both vectors as σ.
+    """
+    import math as _math
+    t_map = {k: v for k, v in target_pairs}
+    b_map = {k: v for k, v in benchmark_pairs}
+    keys = sorted(set(t_map) | set(b_map))
+    if not keys:
+        return 0.0, []
+    deltas = []
+    pairs_for_top = []
+    for k in keys:
+        t = t_map.get(k, 0.0)
+        b = b_map.get(k, 0.0)
+        mu = (t + b) / 2.0
+        # pooled stddev of two-element population
+        var = ((t - mu) ** 2 + (b - mu) ** 2) / 2.0
+        sigma = _math.sqrt(var)
+        if sigma < 1e-9:
+            continue
+        zt = (t - mu) / sigma
+        zb = (b - mu) / sigma
+        deltas.append(abs(zt - zb))
+        pairs_for_top.append((k, t, b, abs(zt - zb)))
+    if not deltas:
+        return 0.0, []
+    delta = sum(deltas) / len(deltas)
+    pairs_for_top.sort(key=lambda x: -x[3])
+    top = [{"item": k, "target": round(t, 4), "benchmark": round(b, 4),
+            "delta": round(d, 4)} for k, t, b, d in pairs_for_top[:8]]
+    return delta, top
 
 
 def compute_gaps(target: dict, benchmark: dict) -> dict:
@@ -303,18 +389,40 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
             "edit_hint": _hint_for(feature, direction),
         })
 
-    # n-gram distribution distances
+    # Distribution-shape distances over n-gram + MFW lists
     ngram_gaps = {}
-    for list_feature in ("fw_bigrams", "fw_trigrams", "sentence_starters"):
+    for list_feature, metric in (
+        ("fw_bigrams", "tvd"),
+        ("fw_trigrams", "tvd"),
+        ("sentence_starters", "tvd"),
+        ("char_3grams", "cosine"),
+        ("char_4grams", "cosine"),
+    ):
         t_list = target.get(list_feature, [])
         b_list = benchmark.get(list_feature, [])
-        dist, top = _distribution_distance(t_list, b_list)
+        if metric == "cosine":
+            dist, top = _cosine_distance(t_list, b_list)
+        else:
+            dist, top = _distribution_distance(t_list, b_list)
         ngram_gaps[list_feature] = {
+            "metric": metric,
             "distance": round(dist, 4),
             "top_divergent": top,
         }
         category_totals["ngrams"] = category_totals.get("ngrams", 0.0) + dist * 5.0
         category_counts["ngrams"] = category_counts.get("ngrams", 0) + 1
+
+    # Burrows' Delta over MFW
+    t_mfw = target.get("mfw_top150", [])
+    b_mfw = benchmark.get("mfw_top150", [])
+    delta_val, delta_top = _burrows_delta(t_mfw, b_mfw)
+    ngram_gaps["mfw_top150"] = {
+        "metric": "burrows_delta",
+        "distance": round(delta_val, 4),
+        "top_divergent": delta_top,
+    }
+    category_totals["burrows"] = delta_val
+    category_counts["burrows"] = 1
 
     # Weighted total
     total = 0.0

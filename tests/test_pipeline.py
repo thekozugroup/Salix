@@ -197,6 +197,45 @@ class TestStats(unittest.TestCase):
         agg = aggregate([s1])
         self.assertEqual(agg.get("_sigma"), {})
 
+    def test_lexical_richness_measures(self):
+        from lib.stats import yule_k, honore_r, simpson_d, tokenize as _tok
+        toks = _tok(SAMPLE_FORMAL)
+        self.assertGreater(yule_k(toks), 0)
+        self.assertGreater(honore_r(toks), 0)
+        d = simpson_d(toks)
+        self.assertGreaterEqual(d, 0.0)
+        self.assertLessEqual(d, 1.0)
+        # Empty or 1-token input should not crash
+        self.assertEqual(yule_k([]), 0.0)
+        self.assertEqual(simpson_d(["one"]), 0.0)
+
+    def test_char_ngrams_present_and_normalized(self):
+        from lib.stats import char_ngrams
+        grams = char_ngrams(SAMPLE_FORMAL, n=3, top_k=50)
+        self.assertGreater(len(grams), 0)
+        # frequencies sum to ≤ 1 (top_k is a truncation)
+        self.assertLessEqual(sum(f for _, f in grams), 1.0 + 1e-6)
+        # 'the' is a high-frequency 3-gram in English prose
+        gmap = dict(grams)
+        self.assertIn("the", gmap)
+
+    def test_burrows_mfw_present(self):
+        from lib.stats import burrows_delta_features, tokenize as _tok
+        toks = _tok(SAMPLE_FORMAL)
+        mfw = burrows_delta_features(toks, len(toks), top_k=20)
+        self.assertGreater(len(mfw), 0)
+        self.assertEqual(len(mfw[0]), 2)
+
+    def test_compute_gaps_includes_char_ngrams_and_delta(self):
+        formal = analyze(SAMPLE_FORMAL)
+        target = analyze(TARGET_DRAFT)
+        gaps = compute_gaps(target, formal)
+        self.assertIn("char_3grams", gaps["ngram_gaps"])
+        self.assertIn("char_4grams", gaps["ngram_gaps"])
+        self.assertIn("mfw_top150", gaps["ngram_gaps"])
+        self.assertEqual(gaps["ngram_gaps"]["char_3grams"]["metric"], "cosine")
+        self.assertEqual(gaps["ngram_gaps"]["mfw_top150"]["metric"], "burrows_delta")
+
     def test_function_word_ngrams_run_based(self):
         """N-grams should come from FW runs only and not cross content tokens."""
         from lib.stats import function_word_ngrams as fwn

@@ -71,6 +71,90 @@ def tokenize(text: str) -> list[str]:
     return [m.group(0).lower() for m in WORD_RE.finditer(text)]
 
 
+def char_ngrams(text: str, n: int = 3, top_k: int = 200) -> list[list]:
+    """Top-K character n-grams with normalized frequencies.
+
+    Character n-grams are the single highest-performing authorship feature in
+    Stamatatos (2009) and capture orthographic + morphological habits at once.
+    Whitespace is collapsed to a single space and only Latin letters and
+    spaces are kept, so the feature is reasonably robust to formatting noise.
+    """
+    norm = re.sub(r"\s+", " ", text.lower())
+    norm = re.sub(r"[^a-zà-ÿ ']", "", norm)
+    if len(norm) < n:
+        return []
+    counter: Counter = Counter()
+    for i in range(len(norm) - n + 1):
+        counter[norm[i:i + n]] += 1
+    total = sum(counter.values()) or 1
+    items = counter.most_common(top_k)
+    return [[g, round(c / total, 6)] for g, c in items]
+
+
+def burrows_delta_features(tokens: list[str], total_words: int, top_k: int = 150) -> list[list]:
+    """Most-frequent-word frequencies for Burrows' Delta.
+
+    Returns the top-K *function-word* frequencies (per 1k words) — the
+    topic-blind variant of Burrows that Argamon recommends for cross-topic
+    authorship. Distance is computed externally as mean absolute z-score over
+    these features (the classic Delta formula).
+    """
+    if total_words == 0:
+        return []
+    fw_counts = Counter(t for t in tokens if t in FUNCTION_WORDS)
+    items = fw_counts.most_common(top_k)
+    per1k = 1000.0 / total_words
+    return [[w, round(c * per1k, 4)] for w, c in items]
+
+
+def yule_k(tokens: list[str]) -> float:
+    """Yule's K — vocabulary diversity index, length-robust.
+
+    K = 10000 * (Σ V(i,N) * i² - N) / N²
+    where V(i,N) is the number of types occurring exactly i times.
+    Lower K = more diverse vocabulary.
+    """
+    n = len(tokens)
+    if n < 2:
+        return 0.0
+    counts = Counter(tokens)
+    freq_of_freq: Counter = Counter(counts.values())
+    s2 = sum(i * i * v for i, v in freq_of_freq.items())
+    return 10000.0 * (s2 - n) / (n * n)
+
+
+def honore_r(tokens: list[str]) -> float:
+    """Honoré's R — emphasizes hapax legomena.
+
+    R = 100 * log(N) / (1 - V1/V)
+    where N=tokens, V=types, V1=hapax legomena (types occurring once).
+    """
+    n = len(tokens)
+    if n < 2:
+        return 0.0
+    counts = Counter(tokens)
+    v = len(counts)
+    v1 = sum(1 for c in counts.values() if c == 1)
+    if v == 0 or v1 == v:
+        return 0.0
+    ratio = v1 / v
+    return 100.0 * math.log(n) / (1 - ratio + 1e-9)
+
+
+def simpson_d(tokens: list[str]) -> float:
+    """Simpson's D — probability that two random tokens differ in type.
+
+    D = 1 - Σ n_i*(n_i - 1) / (N*(N - 1))
+    Range [0, 1]; higher = more diverse.
+    """
+    n = len(tokens)
+    if n < 2:
+        return 0.0
+    counts = Counter(tokens)
+    num = sum(c * (c - 1) for c in counts.values())
+    return 1 - num / (n * (n - 1))
+
+
 def estimate_syllables(word: str) -> int:
     """Heuristic syllable count. Handles silent-e, common patterns."""
     w = word.lower()
@@ -351,6 +435,9 @@ def analyze(text: str) -> dict:
     features: dict = {}
     features.update(lexical_features(tokens))
     features["mtld"] = round(mtld(tokens), 3)
+    features["yule_k"] = round(yule_k(tokens), 3)
+    features["honore_r"] = round(honore_r(tokens), 3)
+    features["simpson_d"] = round(simpson_d(tokens), 4)
     features.update({k: round(v, 4) for k, v in sentence_features(sentences).items() if isinstance(v, float)} |
                     {k: v for k, v in sentence_features(sentences).items() if not isinstance(v, float)})
     features.update({k: round(v, 4) for k, v in punctuation_rates(text, n_words).items()})
@@ -367,8 +454,11 @@ def analyze(text: str) -> dict:
     features["paragraph_count"] = paragraph_features(text)["paragraph_count"]
 
     # Lists kept separately — distance.py treats these as distribution comparisons
-    features["fw_bigrams"] = function_word_ngrams(tokens, n=2, top_k=25)
-    features["fw_trigrams"] = function_word_ngrams(tokens, n=3, top_k=25)
+    features["fw_bigrams"] = function_word_ngrams(tokens, n=2, top_k=100)
+    features["fw_trigrams"] = function_word_ngrams(tokens, n=3, top_k=100)
+    features["char_3grams"] = char_ngrams(text, n=3, top_k=200)
+    features["char_4grams"] = char_ngrams(text, n=4, top_k=200)
+    features["mfw_top150"] = burrows_delta_features(tokens, n_words, top_k=150)
     features["sentence_starters"] = sentence_starters(sentences, top_k=15)
 
     return features
@@ -391,7 +481,8 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
     if not stats_list:
         return {}
 
-    list_keys = {"fw_bigrams", "fw_trigrams", "sentence_starters"}
+    list_keys = {"fw_bigrams", "fw_trigrams", "sentence_starters",
+                 "char_3grams", "char_4grams", "mfw_top150"}
 
     def _is_scalar(v):
         return isinstance(v, (int, float)) and not isinstance(v, bool)
@@ -435,21 +526,33 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         sigma[key] = round(_math.sqrt(var), 6) if var > 0 else 0.0
         out[key] = round(weighted_mean, 4)
 
+    list_caps = {
+        "fw_bigrams": 100, "fw_trigrams": 100,
+        "char_3grams": 200, "char_4grams": 200,
+        "mfw_top150": 150, "sentence_starters": 15,
+    }
     for lk in list_keys:
         # Reconstruct raw counts: each per-doc list is normalized by its own
-        # total, so multiply each freq by an estimate of its raw count
-        # (we use total ngram emissions ~ word_count for bigrams, etc.).
+        # total (for frequency lists) or already in per-1k units (for mfw),
+        # so we scale by word_count as a coarse estimate of raw mass.
         merged: Counter = Counter()
         for s in stats_list:
             scale = max(s.get("word_count", 0), 1)
             for item, freq in s.get(lk, []):
                 merged[item] += freq * scale
         total = sum(merged.values()) or 1
-        cap = 100 if "ngrams" in lk else 25 if lk == "sentence_starters" else 100
-        if lk == "sentence_starters":
-            cap = 15
+        cap = list_caps.get(lk, 100)
         top = merged.most_common(cap)
-        out[lk] = [[g, round(c / total, 6)] for g, c in top]
+        # mfw_top150 is in per-1k units, not normalized — preserve that
+        if lk == "mfw_top150":
+            total_w = sum(s.get("word_count", 0) for s in stats_list) or 1
+            per1k = 1000.0 / total_w
+            # `merged[item]` here is per1k_freq * word_count summed across docs,
+            # which equals raw count summed × 1000 / per_doc_word_count. We
+            # approximate the corpus-level rate per 1k.
+            out[lk] = [[g, round(c / total_w, 4)] for g, c in top]
+        else:
+            out[lk] = [[g, round(c / total, 6)] for g, c in top]
 
     out["sample_count"] = len(stats_list)
     out["total_word_count"] = total_w
