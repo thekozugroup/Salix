@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+benchmarks/*.json
+!benchmarks/.gitkeep
+samples/*
+!samples/.gitkeep
+/tmp/salix_*
