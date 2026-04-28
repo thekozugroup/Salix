@@ -63,10 +63,31 @@ WEIGHTS = {
 SKIP_FEATURES = {
     "word_count", "type_count", "sentence_count", "max_sent_len",
     "paragraph_count", "sample_count", "total_word_count",
+    "_sigma",
 }
 
 
-def _sigma_for(feature: str) -> float:
+def _sigma_for(feature: str, empirical: dict | None = None) -> float:
+    """Return the standard deviation to use for normalizing a feature's z-score.
+
+    Resolution order:
+      1. Empirical within-author sigma from the benchmark's `_sigma` dict
+         (computed at ingest from per-document variance). Skipped if the value
+         is too small to be meaningful (avoids dividing by ~0 noise).
+      2. Hand-tuned `EXPECTED_SIGMA` prior for known features.
+      3. Default sigma by feature family (punct_, fw_).
+      4. 1.0 fallback.
+    """
+    if empirical:
+        emp = empirical.get(feature)
+        if emp is not None and emp > 1e-6:
+            # Floor empirical sigma at 25% of the prior (when one exists) so a
+            # single-author corpus that happens to be very consistent on a
+            # feature doesn't explode every small deviation into a giant z.
+            prior = EXPECTED_SIGMA.get(feature)
+            if prior is not None:
+                return max(emp, 0.25 * prior)
+            return emp
     if feature in EXPECTED_SIGMA:
         return EXPECTED_SIGMA[feature]
     if feature.startswith("punct_"):
@@ -254,15 +275,17 @@ def compute_gaps(target: dict, benchmark: dict) -> dict:
     category_totals: dict[str, float] = {}
     category_counts: dict[str, int] = {}
 
+    empirical_sigma = benchmark.get("_sigma") if isinstance(benchmark, dict) else None
+
     for feature, t_val in target.items():
-        if feature in SKIP_FEATURES:
+        if feature in SKIP_FEATURES or feature.startswith("_"):
             continue
         if isinstance(t_val, list):
             continue
         b_val = benchmark.get(feature)
         if b_val is None or not isinstance(b_val, (int, float)):
             continue
-        sigma = _sigma_for(feature) or 1.0
+        sigma = _sigma_for(feature, empirical_sigma) or 1.0
         z = (t_val - b_val) / sigma
         cat = _category_for(feature)
         category_totals[cat] = category_totals.get(cat, 0.0) + abs(z)

@@ -108,6 +108,40 @@ class TestStats(unittest.TestCase):
         self.assertEqual(agg["total_word_count"], s1["word_count"] + s2["word_count"])
         self.assertIn("fw_bigrams", agg)
 
+    def test_aggregate_emits_empirical_sigma(self):
+        """With multiple samples, _sigma must capture per-feature variance."""
+        s1 = analyze(SAMPLE_FORMAL)
+        s2 = analyze(SAMPLE_CASUAL)
+        s3 = analyze(SAMPLE_FORMAL[:300])
+        agg = aggregate([s1, s2, s3])
+        self.assertIn("_sigma", agg)
+        # Sigma should exist for every scalar feature
+        for k in ["mean_sent_len", "ttr", "formality_f_score"]:
+            self.assertIn(k, agg["_sigma"], f"missing empirical sigma for {k}")
+        # Sigma must be non-negative
+        for k, v in agg["_sigma"].items():
+            self.assertGreaterEqual(v, 0.0)
+        # Mean sentence length varies between formal/casual — sigma must be > 0
+        self.assertGreater(agg["_sigma"]["mean_sent_len"], 0.0)
+
+    def test_aggregate_single_sample_has_empty_sigma(self):
+        s1 = analyze(SAMPLE_FORMAL)
+        agg = aggregate([s1])
+        self.assertEqual(agg.get("_sigma"), {})
+
+    def test_function_word_ngrams_run_based(self):
+        """N-grams should come from FW runs only and not cross content tokens."""
+        from lib.stats import function_word_ngrams as fwn
+        # "the of and" is a contiguous FW run; "the dog of" has dog breaking it
+        toks = "the of and to a dog the of a".split()
+        bigrams = dict(fwn(toks, n=2, top_k=20))
+        # "the of" appears in run 1; "the of" again as a fragment of "the of a"
+        self.assertIn("the of", bigrams)
+        # "of dog" must NOT appear (dog is a content word)
+        self.assertNotIn("of dog", bigrams)
+        # Frequencies sum to 1
+        self.assertAlmostEqual(sum(bigrams.values()), 1.0, places=4)
+
 
 class TestDistance(unittest.TestCase):
     def test_identical_distance_zero(self):
@@ -250,6 +284,28 @@ class TestSimulator(unittest.TestCase):
                                  f"distance increased: {prev:.4f} -> {cur:.4f}")
         self.assertLess(distances[-1], distances[0],
                         "loop must reduce distance overall")
+
+    def test_simulator_monotonic_across_seeds(self):
+        """Property: distance must not increase across iterations for any seed.
+
+        Catches the str.replace substring-collision bug (now fixed with
+        sentence-boundary-anchored splicing).
+        """
+        import random
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.simulate_loop import run_loop  # type: ignore
+
+        bench_stats = analyze((SAMPLE_FORMAL + "\n") * 4)
+        for seed in [0, 1, 7, 17, 42, 123]:
+            random.seed(seed)
+            result = run_loop(TARGET_DRAFT, bench_stats, max_iter=6, threshold=0.15)
+            distances = [h["distance"] for h in result["history"]]
+            for prev, cur in zip(distances, distances[1:]):
+                self.assertLessEqual(
+                    cur, prev + 0.001,
+                    f"seed={seed}: distance increased {prev:.4f} -> {cur:.4f}",
+                )
 
     def test_simulator_halts_gracefully(self):
         import sys as _sys

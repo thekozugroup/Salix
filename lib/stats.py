@@ -204,20 +204,34 @@ def function_word_rates(tokens: list[str], total_words: int) -> dict[str, float]
     return {f"fw_{w}_per1k": counts.get(w, 0) * per1k for w in FW_TRACKED}
 
 
-def function_word_ngrams(tokens: list[str], n: int = 2, top_k: int = 25) -> list[list]:
+def function_word_ngrams(tokens: list[str], n: int = 2, top_k: int = 100) -> list[list]:
     """Top-K function-word n-grams with normalized frequencies.
 
-    Tokens are first filtered to function words only — this strips topic-specific
-    vocabulary, leaving a topic-blind stylistic skeleton.
+    The token stream is first reduced to *consecutive runs* of function words.
+    Within each run, every n-gram is counted; non-function tokens act as run
+    boundaries (no n-gram crosses them). Frequencies are normalized over the
+    total number of n-grams *emitted* (not over total bigram positions in the
+    raw text), which keeps the distribution well-defined even when content
+    words dominate the input.
     """
-    fw_seq = [t if t in FUNCTION_WORDS else "_X_" for t in tokens]
-    grams = []
-    for i in range(len(fw_seq) - n + 1):
-        window = fw_seq[i : i + n]
-        if "_X_" in window:
+    runs: list[list[str]] = []
+    current: list[str] = []
+    for t in tokens:
+        if t in FUNCTION_WORDS:
+            current.append(t)
+        elif current:
+            runs.append(current)
+            current = []
+    if current:
+        runs.append(current)
+
+    counter: Counter = Counter()
+    for run in runs:
+        if len(run) < n:
             continue
-        grams.append(" ".join(window))
-    counter = Counter(grams)
+        for i in range(len(run) - n + 1):
+            counter[" ".join(run[i:i + n])] += 1
+
     total = sum(counter.values()) or 1
     items = counter.most_common(top_k)
     return [[g, round(c / total, 6)] for g, c in items]
@@ -358,41 +372,81 @@ def analyze(text: str) -> dict:
 def aggregate(stats_list: Iterable[dict]) -> dict:
     """Average scalar features across multiple texts; merge n-gram distributions.
 
+    Computes:
+      - weighted means (by word_count) for every scalar feature
+      - per-feature within-author standard deviation across the input documents,
+        stored in a `_sigma` sub-dict — this replaces the hard-coded
+        EXPECTED_SIGMA at compare time and makes z-scores honest
+      - merged n-gram distributions, summed as raw counts then renormalized
+
     Used by ingest.py to combine many sample files into one benchmark.
     """
+    import math as _math
     stats_list = list(stats_list)
     if not stats_list:
         return {}
-    if len(stats_list) == 1:
-        return stats_list[0]
 
-    out = {}
     list_keys = {"fw_bigrams", "fw_trigrams", "sentence_starters"}
 
     def _is_scalar(v):
         return isinstance(v, (int, float)) and not isinstance(v, bool)
 
-    scalar_keys = [k for k, v in stats_list[0].items()
-                   if k not in list_keys and _is_scalar(v)]
+    # Union of scalar keys across all samples (was: keys-of-first-sample only).
+    scalar_keys = set()
+    for s in stats_list:
+        for k, v in s.items():
+            if k not in list_keys and _is_scalar(v):
+                scalar_keys.add(k)
+    scalar_keys = sorted(scalar_keys)
 
-    # weighted by word_count for stability
+    out: dict = {}
+    sigma: dict = {}
+
+    if len(stats_list) == 1:
+        # Single-doc fingerprint: scalars copy through, sigma is empty so
+        # comparison falls back to EXPECTED_SIGMA defaults.
+        only = stats_list[0]
+        for k in scalar_keys:
+            out[k] = only.get(k, 0)
+        out["sample_count"] = 1
+        out["total_word_count"] = only.get("word_count", 0)
+        out["_sigma"] = {}
+        # n-gram lists pass through unchanged
+        for lk in list_keys:
+            out[lk] = list(only.get(lk, []))
+        return out
+
     total_w = sum(s.get("word_count", 0) for s in stats_list) or 1
+
     for key in scalar_keys:
-        weighted_sum = sum(
-            (s.get(key, 0) if _is_scalar(s.get(key, 0)) else 0) * s.get("word_count", 0)
-            for s in stats_list
-        )
-        out[key] = round(weighted_sum / total_w, 4)
+        values = [s.get(key, 0) if _is_scalar(s.get(key, 0)) else 0 for s in stats_list]
+        weights = [s.get("word_count", 0) for s in stats_list]
+        weighted_mean = sum(v * w for v, w in zip(values, weights)) / total_w
+        # Unweighted sample stddev across documents — measures within-author
+        # variation in the feature, which is exactly what z-scores need.
+        n = len(values)
+        mean_unw = sum(values) / n
+        var = sum((v - mean_unw) ** 2 for v in values) / max(n - 1, 1)
+        sigma[key] = round(_math.sqrt(var), 6) if var > 0 else 0.0
+        out[key] = round(weighted_mean, 4)
 
     for lk in list_keys:
+        # Reconstruct raw counts: each per-doc list is normalized by its own
+        # total, so multiply each freq by an estimate of its raw count
+        # (we use total ngram emissions ~ word_count for bigrams, etc.).
         merged: Counter = Counter()
         for s in stats_list:
+            scale = max(s.get("word_count", 0), 1)
             for item, freq in s.get(lk, []):
-                merged[item] += freq * s.get("word_count", 0)
+                merged[item] += freq * scale
         total = sum(merged.values()) or 1
-        top = merged.most_common(25 if "starters" not in lk else 15)
+        cap = 100 if "ngrams" in lk else 25 if lk == "sentence_starters" else 100
+        if lk == "sentence_starters":
+            cap = 15
+        top = merged.most_common(cap)
         out[lk] = [[g, round(c / total, 6)] for g, c in top]
 
     out["sample_count"] = len(stats_list)
     out["total_word_count"] = total_w
+    out["_sigma"] = sigma
     return out

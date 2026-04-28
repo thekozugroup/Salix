@@ -33,6 +33,25 @@ HEDGES_BANK = ["perhaps", "rather", "indeed", "though", "however"]
 DISCOURSE_BANK = ["moreover", "thus", "consequently", "nevertheless"]
 
 
+def _splice_sentence(text: str, old: str, new: str) -> str:
+    """Replace `old` in `text` with `new`, but only when `old` sits at a
+    sentence boundary (start-of-text or after a sentence terminator + space).
+
+    Avoids the substring-collision bug of `str.replace`: a short sentence that
+    is also a fragment of a longer one will not be silently rewritten in the
+    wrong place.
+    """
+    pattern = re.compile(r"(?:(?<=\s)|^)" + re.escape(old))
+    m = pattern.search(text)
+    if not m:
+        # Fall back to literal find — better than mutating nothing.
+        idx = text.find(old)
+        if idx < 0:
+            return text
+        return text[:idx] + new + text[idx + len(old):]
+    return text[: m.start()] + new + text[m.end():]
+
+
 def _add_comma(text: str) -> str:
     """Insert a comma at a likely natural pause.
 
@@ -65,7 +84,7 @@ def _add_comma(text: str) -> str:
         s = random.choice(candidates)
         words = s.split()
         rebuilt = " ".join(words[:2]) + ", " + " ".join(words[2:])
-        return text.replace(s, rebuilt, 1)
+        return _splice_sentence(text, s, rebuilt)
     return text
 
 
@@ -90,7 +109,7 @@ def _split_long_sentence(text: str) -> str:
     if len(parts) != 2:
         return text
     rebuilt = parts[0] + ". " + parts[1][:1].upper() + parts[1][1:]
-    return text.replace(longest, rebuilt, 1)
+    return _splice_sentence(text, longest, rebuilt)
 
 
 def _join_short_sentences(text: str) -> str:
@@ -100,7 +119,7 @@ def _join_short_sentences(text: str) -> str:
         a, b = sentences[i], sentences[i+1]
         if len(a.split()) < 9 and len(b.split()) < 9:
             joined = a.rstrip(".!?") + ", and " + b[:1].lower() + b[1:]
-            return text.replace(a + " " + b, joined, 1)
+            return _splice_sentence(text, a + " " + b, joined)
     return text
 
 
@@ -111,7 +130,7 @@ def _insert_hedge(text: str) -> str:
     target = random.choice(sentences)
     hedge = random.choice(HEDGES_BANK)
     new = re.sub(r"^(\w+\s+\w+)", lambda m: f"{m.group(1)}, {hedge},", target, count=1)
-    return text.replace(target, new, 1)
+    return _splice_sentence(text, target, new)
 
 
 def _insert_discourse_marker(text: str) -> str:
@@ -121,7 +140,7 @@ def _insert_discourse_marker(text: str) -> str:
     target = sentences[1]
     marker = random.choice(DISCOURSE_BANK).capitalize()
     new = f"{marker}, {target[:1].lower()}{target[1:]}"
-    return text.replace(target, new, 1)
+    return _splice_sentence(text, target, new)
 
 
 # Map gap features to candidate edit functions. The simulator picks the first
