@@ -110,7 +110,11 @@ def cmd_status(args):
     print(f"Sample files:     {len(sample_files)}")
     if profiles:
         for name in profiles:
-            data = json.loads(_bench_path(name).read_text())
+            try:
+                data = _load_bench(name)
+            except SystemExit as e:
+                print(f"  - {name:20} <unreadable: {e}>")
+                continue
             stats = data.get("stats", {})
             print(f"  - {name:20} {stats.get('total_word_count', 0):>7,} words from "
                   f"{stats.get('sample_count', '?')} samples (created {data.get('created_at', '?')})")
@@ -206,6 +210,20 @@ def cmd_validate(args):
     return 0
 
 
+def cmd_baseline(args):
+    """Run the Stamatatos (2009) char-3gram + cosine baseline on a corpus
+    for head-to-head comparison against Salix's full-feature distance."""
+    from scripts.stamatatos_baseline import attribute as _baseline  # type: ignore
+    res = _baseline(Path(args.corpus_dir), args.top_k)
+    print(f"Method:          {res['method']}")
+    print(f"Vocabulary size: {res['top_k']}")
+    print(f"Authors:         {res['authors']}")
+    print(f"Held-out docs:   {res['total_held_out']}")
+    print(f"Correct:         {res['correct']}")
+    print(f"Accuracy:        {res['accuracy']:.1%}")
+    return 0
+
+
 def cmd_simulate(args):
     from scripts.simulate_loop import run_loop  # type: ignore
     bench = _load_bench(args.profile)
@@ -274,6 +292,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_val.add_argument("--corpus-dir", help="Real-corpus dir (subdirs are authors)")
     p_val.add_argument("--out", help="Path to save the report")
     p_val.set_defaults(fn=cmd_validate)
+
+    p_bl = sub.add_parser("baseline", help="Run Stamatatos 2009 char-3gram + cosine baseline")
+    p_bl.add_argument("--corpus-dir", required=True)
+    p_bl.add_argument("--top-k", type=int, default=1000)
+    p_bl.set_defaults(fn=cmd_baseline)
 
     p_sim = sub.add_parser("simulate", help="Dry-run rewrite loop with rule-based edits")
     p_sim.add_argument("path")

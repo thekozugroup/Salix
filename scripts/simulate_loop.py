@@ -36,18 +36,28 @@ DISCOURSE_BANK = ["moreover", "thus", "consequently", "nevertheless"]
 def _splice_sentence(text: str, old: str, new: str) -> str:
     """Replace `old` in `text` with `new`, but only when `old` sits at a
     real sentence boundary: start-of-text, or preceded by a terminator
-    (.!?…) followed by whitespace. The previous regex anchored on any
-    preceding whitespace, which still permitted intra-sentence collisions
-    (e.g. matching "It works" inside "It works fine."). A literal-find
-    fallback is intentionally NOT provided — if no boundary-anchored match
-    exists, the edit is skipped (returning the original text), and the
-    rule-cycling loop in the caller tries the next gap.
+    `.!?…` followed by one-or-more whitespace characters (spaces, tabs,
+    newlines, double-newline paragraph breaks). The previous regex required
+    exactly one whitespace char and missed paragraph-internal boundaries.
+
+    No literal-find fallback: if no boundary match exists, the edit is
+    skipped (returning the original text) and the caller tries the next
+    gap — guaranteeing collision-free edits.
     """
-    pattern = re.compile(r"(?:(?<=[.!?…]\s)|^)" + re.escape(old))
-    m = pattern.search(text)
-    if not m:
-        return text
-    return text[: m.start()] + new + text[m.end():]
+    # Use a non-fixed-width approach: split into "preceding text" via
+    # finditer over (terminator, whitespace) pairs, then check each match.
+    needle_re = re.compile(re.escape(old))
+    for m in needle_re.finditer(text):
+        start = m.start()
+        if start == 0:
+            return text[:start] + new + text[start + len(old):]
+        # Walk back over whitespace, then look for a terminator.
+        i = start - 1
+        while i >= 0 and text[i] in " \t\n\r":
+            i -= 1
+        if i >= 0 and text[i] in ".!?…":
+            return text[:start] + new + text[start + len(old):]
+    return text
 
 
 def _add_comma(text: str) -> str:

@@ -74,6 +74,64 @@ Major iteration round driven by independent linguistic + engineering review.
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-04-28
+
+Round-2 + round-3 reviewer punch lists. Substantial linguistic overhaul.
+
+### Added
+- **Real Burrows' Delta**. `aggregate()` persists `_mfw_sigma` (across-document
+  stddev of each MFW word's per-1k rate). `_burrows_delta()` uses these honest
+  sigmas; falls back to the global-σ-of-MFW-vector with a 10% floor when
+  sigmas are absent.
+- **POS n-grams**. `pos_ngrams()` emits POS bi/trigrams via spaCy when
+  available; integrated through `aggregate()`, `compute_gaps()` n-gram TVD.
+  Argamon-Koppel feature.
+- **Stamatatos (2009) baseline**. `scripts/stamatatos_baseline.py` and
+  `salix baseline --corpus-dir ...` implement the canonical char-3gram +
+  cosine attribution method for head-to-head comparison against Salix's
+  full-feature distance on the same corpus.
+- **pyphen syllable counter** when installed — Hyphenation-dictionary-based,
+  far more accurate than the vowel-group heuristic on Latinate / affixed
+  words. Heuristic stays as a deterministic fallback.
+- **Real-corpus validation mode**. `./salix validate --corpus-dir <dir>`
+  with per-author subdirectories. Synthetic mode now explicitly framed as
+  a sanity check, not authorship attribution.
+
+### Changed
+- **MFW aggregation units**. Explicit per-doc per-1k tracking; corpus-level
+  mean is the word-count-weighted average. No more sleight-of-hand mixing
+  per-1k rates with raw-mass weights.
+- **`_splice_sentence`** now matches sentence boundaries via offset walk-back
+  (terminator + any whitespace), supporting paragraph-internal breaks.
+  Literal-find fallback removed — collision-free by construction.
+- **Char n-gram script coverage** matches the tokenizer's Unicode policy
+  (any letter via `isalpha()` + apostrophe + space).
+- **`load_corpus` symlink containment** uses `Path.is_relative_to()` instead
+  of fragile `str.startswith` (sibling-prefix bypass fixed).
+- **`cmd_status`** now uses `_load_bench` for corruption-tolerant reads;
+  surfaces unreadable benchmarks instead of crashing.
+- **`_get_spacy_nlp`** wraps the load attempt in a `threading.Lock` and
+  defers setting `_SPACY_LOAD_ATTEMPTED` until after assignment, so
+  concurrent callers cannot observe partial state.
+- **Honoré's R** returns 0.0 below 50 tokens and caps `1−V1/V` at 0.05 to
+  prevent divergence on hapax-heavy short inputs.
+- **Tone lexicons trimmed**. Removed `kind`/`sort`/`rather` from HEDGES
+  (head-noun and contrastive senses dominate); `must` from BOOSTERS
+  (handled in `count_modal_hedges`); `right`/`correct` from POSITIVE
+  (directional/agreement senses dominate in conversational prose).
+
+### Tests added (now 65)
+- `_splice_sentence` substring-collision avoidance.
+- Stamatatos baseline attribution accuracy.
+- `cmd_status` graceful handling of corrupt benchmark.
+- Sibling-prefix symlink rejection (catches the `startswith` trap).
+- Real-corpus validation mode dispatches end-to-end.
+- POS n-grams present (empty when spaCy absent).
+- spaCy lazy-load (importing `lib.stats` does not load the model).
+- `MAX_FILE_BYTES` rejection.
+- Malformed-JSON benchmark surfaces a clear error via the CLI.
+
+
 ## [0.6.0] — 2026-04-28
 
 ### Added

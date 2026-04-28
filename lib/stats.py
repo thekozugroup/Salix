@@ -13,23 +13,31 @@ from .tone import heylighen_f_score, tone_metrics
 # Optional spaCy: lazily loaded on first call so importing lib.stats stays
 # fast (no 200-500 ms model-load tax on every CLI subcommand). The model is
 # loaded once per process and cached.
+import threading as _threading
 _SPACY_NLP: object | None = None
 _SPACY_LOAD_ATTEMPTED = False
+_SPACY_LOCK = _threading.Lock()
 
 
 def _get_spacy_nlp():
     global _SPACY_NLP, _SPACY_LOAD_ATTEMPTED
     if _SPACY_LOAD_ATTEMPTED:
         return _SPACY_NLP
-    _SPACY_LOAD_ATTEMPTED = True
-    try:
-        import spacy as _spacy
+    with _SPACY_LOCK:
+        # Re-check inside the lock — another thread may have loaded while
+        # we were waiting.
+        if _SPACY_LOAD_ATTEMPTED:
+            return _SPACY_NLP
         try:
-            _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
-        except OSError:
+            import spacy as _spacy
+            try:
+                _SPACY_NLP = _spacy.load("en_core_web_sm", disable=["ner", "parser"])
+            except OSError:
+                _SPACY_NLP = None
+        except ImportError:
             _SPACY_NLP = None
-    except ImportError:
-        _SPACY_NLP = None
+        # Set the flag last so partial state isn't visible to other threads.
+        _SPACY_LOAD_ATTEMPTED = True
     return _SPACY_NLP
 
 
@@ -232,17 +240,46 @@ def simpson_d(tokens: list[str]) -> float:
     return 1 - num / (n * (n - 1))
 
 
+# Optional pyphen for syllable counting. Hyphenation-dictionary-based; far
+# more accurate than the vowel-group heuristic on Latinate / affixed words.
+_PYPHEN_DIC = None
+_PYPHEN_ATTEMPTED = False
+
+
+def _get_pyphen():
+    global _PYPHEN_DIC, _PYPHEN_ATTEMPTED
+    if _PYPHEN_ATTEMPTED:
+        return _PYPHEN_DIC
+    try:
+        import pyphen
+        _PYPHEN_DIC = pyphen.Pyphen(lang="en_US")
+    except ImportError:
+        _PYPHEN_DIC = None
+    _PYPHEN_ATTEMPTED = True
+    return _PYPHEN_DIC
+
+
 def estimate_syllables(word: str) -> int:
-    """Heuristic syllable count. Handles silent-e, common patterns."""
+    """Syllable count — pyphen if available, vowel-group heuristic fallback.
+
+    Pyphen uses Hyphenation libhyphen dictionaries (the same ones LibreOffice
+    ships) and tracks affix and Latinate splits the heuristic misses. Without
+    pyphen, falls back to a silent-e + vowel-group estimator that is
+    deterministic and zero-dependency but coarse.
+    """
     w = word.lower()
     if not w:
         return 0
+    pyphen_dic = _get_pyphen()
+    if pyphen_dic is not None:
+        # Pyphen returns hyphenated form; syllables = hyphens + 1.
+        hyphenated = pyphen_dic.inserted(w)
+        return max(hyphenated.count("-") + 1, 1)
     # strip silent trailing e (but not for short words like "be", "the")
     if len(w) > 3 and w.endswith("e") and not w.endswith("le"):
         w = w[:-1]
     groups = SYLLABLE_VOWEL_RE.findall(w)
-    n = max(len(groups), 1)
-    return n
+    return max(len(groups), 1)
 
 
 def punctuation_rates(text: str, total_words: int) -> dict[str, float]:

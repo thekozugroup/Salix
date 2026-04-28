@@ -110,12 +110,14 @@ def load_corpus(sample_dir: Path, extensions: Iterable[str] = (".txt", ".md")) -
             # via maliciously placed symlinks pointing into large trees.
             if p.is_symlink():
                 # Allow the link only if its target is inside sample_dir.
+                # Use Path.is_relative_to (3.9+) — string-prefix matching is
+                # fooled by sibling paths like /sample matching /sample-evil.
                 try:
                     target = p.resolve()
                     sample_root = sample_dir.resolve()
-                    if not str(target).startswith(str(sample_root)):
+                    if not target.is_relative_to(sample_root):
                         continue
-                except OSError:
+                except (OSError, ValueError):
                     continue
             try:
                 key = p.resolve()

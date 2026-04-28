@@ -537,6 +537,62 @@ class TestEdgeCases(unittest.TestCase):
         _ls._spacy_pos_counts("test")
         self.assertTrue(_ls._SPACY_LOAD_ATTEMPTED)
 
+    def test_symlink_sibling_prefix_rejected(self):
+        """Symlink to a sibling dir whose path starts with the corpus root
+        must be rejected. Catches the str.startswith trap."""
+        import os as _os
+
+        from lib.io_utils import load_corpus as _lc
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            corpus = base / "samp"
+            corpus.mkdir()
+            sibling = base / "samp-evil"
+            sibling.mkdir()
+            (corpus / "a.md").write_text(SAMPLE_FORMAL)
+            (sibling / "leak.md").write_text("LEAKED CONTENT MARKER ZZZZ")
+            try:
+                _os.symlink(sibling / "leak.md", corpus / "evil.md")
+            except (OSError, NotImplementedError):
+                self.skipTest("symlinks unsupported")
+            text = _lc(corpus)
+            self.assertNotIn("LEAKED CONTENT MARKER ZZZZ", text)
+
+    def test_cmd_status_handles_corrupt_benchmark(self):
+        """salix status must not crash on a corrupt benchmark file."""
+        import os as _os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "benchmarks").mkdir()
+            (home / "samples").mkdir()
+            (home / "benchmarks" / "broken.json").write_text("{not json")
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status"],
+                capture_output=True, text=True,
+                env={**_os.environ, "SALIX_HOME": str(home)},
+            )
+            # Status must succeed and surface the issue in output, not crash
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn("broken", res.stdout)
+            self.assertIn("unreadable", res.stdout)
+
+    def test_stamatatos_baseline_attributes_correctly(self):
+        """The Stamatatos char-3gram baseline must achieve >=50% accuracy
+        on a 2-author tree with clearly distinct prose."""
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.stamatatos_baseline import attribute  # type: ignore
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "c"
+            for label, sample in [("a", SAMPLE_FORMAL), ("b", SAMPLE_CASUAL)]:
+                ad = corpus / label
+                ad.mkdir(parents=True)
+                for i in range(4):
+                    (ad / f"d{i}.txt").write_text((sample + "\n") * 4)
+            res = attribute(corpus, top_k=500)
+            self.assertGreaterEqual(res["accuracy"], 0.5)
+
     def test_real_corpus_validation_mode_dispatches(self):
         """attribution_check_real should run end-to-end on a tiny synthetic
         author tree (mode is real-corpus; we pre-create the files)."""
