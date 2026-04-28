@@ -13,8 +13,6 @@ Jensen-Shannon-flavoured distribution distance over the union of keys.
 
 from __future__ import annotations
 
-import math
-
 # Per-feature expected sigma for normalization. Derived from analysis of
 # heterogeneous English prose corpora; tunable. The values are deliberately
 # approximate — they only need to scale features so no single one dominates.

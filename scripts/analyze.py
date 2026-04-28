@@ -8,11 +8,12 @@ Usage:
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import json
 import sys
 from pathlib import Path
+
+import _path  # noqa: F401
 
 from lib.io_utils import clean_text, load_text
 from lib.stats import analyze

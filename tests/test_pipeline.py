@@ -12,10 +12,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from lib.io_utils import clean_text  # noqa: E402
-from lib.stats import analyze, aggregate, mtld, split_sentences, tokenize  # noqa: E402
 from lib.distance import compute_gaps  # noqa: E402
-
+from lib.io_utils import clean_text  # noqa: E402
+from lib.stats import aggregate, analyze, mtld, split_sentences, tokenize  # noqa: E402
 
 SAMPLE_FORMAL = """
 The implications of this shift are, perhaps, more subtle than they first appear.
@@ -137,8 +136,9 @@ class TestStats(unittest.TestCase):
             Path(tmp_path).unlink()
 
     def test_load_corpus_dedupes_symlinks(self):
-        from lib.io_utils import load_corpus as _lc
         import os as _os
+
+        from lib.io_utils import load_corpus as _lc
         with tempfile.TemporaryDirectory() as tmp:
             d = Path(tmp)
             (d / "real.md").write_text(SAMPLE_FORMAL)
@@ -198,7 +198,8 @@ class TestStats(unittest.TestCase):
         self.assertEqual(agg.get("_sigma"), {})
 
     def test_lexical_richness_measures(self):
-        from lib.stats import yule_k, honore_r, simpson_d, tokenize as _tok
+        from lib.stats import honore_r, simpson_d, yule_k
+        from lib.stats import tokenize as _tok
         toks = _tok(SAMPLE_FORMAL)
         self.assertGreater(yule_k(toks), 0)
         self.assertGreater(honore_r(toks), 0)
@@ -220,7 +221,8 @@ class TestStats(unittest.TestCase):
         self.assertIn("the", gmap)
 
     def test_burrows_mfw_present(self):
-        from lib.stats import burrows_delta_features, tokenize as _tok
+        from lib.stats import burrows_delta_features
+        from lib.stats import tokenize as _tok
         toks = _tok(SAMPLE_FORMAL)
         mfw = burrows_delta_features(toks, len(toks), top_k=20)
         self.assertGreater(len(mfw), 0)

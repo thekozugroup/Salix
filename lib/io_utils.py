@@ -12,8 +12,8 @@ fallback encoding or surface as an explicit error to the caller.
 
 import re
 import warnings
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 CODE_BLOCK_RE = re.compile(r"```.*?```", re.DOTALL)
 INLINE_CODE_RE = re.compile(r"`[^`]+`")

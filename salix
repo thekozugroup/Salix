@@ -31,7 +31,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from lib.distance import compute_gaps  # noqa: E402
 from lib.io_utils import load_text  # noqa: E402
-from lib.stats import analyze, aggregate  # noqa: E402
+from lib.stats import analyze  # noqa: E402
 
 # SALIX_HOME points to where benchmarks/ and samples/ live. Defaults to the
 # script's own directory (the dev/install path). Tests and multi-user
@@ -140,7 +140,10 @@ def cmd_benchmark(args):
 
 def cmd_validate(args):
     from scripts.validate import (  # type: ignore
-        attribution_check, topic_transfer_check, stability_check, render_report,
+        attribution_check,
+        render_report,
+        stability_check,
+        topic_transfer_check,
     )
     print("Running attribution check...")
     attr = attribution_check(args.authors, args.docs_per_author, args.seed,

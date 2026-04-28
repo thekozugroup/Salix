@@ -10,14 +10,15 @@ Each .txt / .md file in --samples is analyzed independently, then aggregated
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+import _path  # noqa: F401
+
 from lib.io_utils import load_text
-from lib.stats import analyze, aggregate
+from lib.stats import aggregate, analyze
 
 
 def main() -> int:
@@ -72,7 +73,8 @@ def main() -> int:
     # Atomic write: stage to a tempfile in the same directory, then rename.
     # Prevents partial-write corruption if the process is interrupted, and
     # avoids races when multiple Claude sessions share a SALIX_HOME.
-    import tempfile, os as _os
+    import os as _os
+    import tempfile
     fd, tmpname = tempfile.mkstemp(prefix=".salix_", suffix=".json", dir=str(out_path.parent))
     try:
         with _os.fdopen(fd, "w") as fh:

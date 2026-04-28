@@ -18,16 +18,16 @@ Usage:
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import random
 import re
 from pathlib import Path
 
+import _path  # noqa: F401
+
 from lib.distance import compute_gaps
 from lib.io_utils import load_text
 from lib.stats import analyze, split_sentences
-
 
 HEDGES_BANK = ["perhaps", "rather", "indeed", "though", "however"]
 DISCOURSE_BANK = ["moreover", "thus", "consequently", "nevertheless"]

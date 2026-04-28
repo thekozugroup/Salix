@@ -5,10 +5,10 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from typing import Iterable
+from collections.abc import Iterable
 
 from .function_words import FUNCTION_WORDS
-from .tone import tone_metrics, heylighen_f_score
+from .tone import heylighen_f_score, tone_metrics
 
 # Sentence boundary regex. Splits on . ! ? … (or sequences like ?! !? ...) followed
 # by whitespace then a non-whitespace token. Lowercase-prose-friendly: does not
@@ -546,10 +546,10 @@ def aggregate(stats_list: Iterable[dict]) -> dict:
         # mfw_top150 is in per-1k units, not normalized — preserve that
         if lk == "mfw_top150":
             total_w = sum(s.get("word_count", 0) for s in stats_list) or 1
-            per1k = 1000.0 / total_w
             # `merged[item]` here is per1k_freq * word_count summed across docs,
-            # which equals raw count summed × 1000 / per_doc_word_count. We
-            # approximate the corpus-level rate per 1k.
+            # which equals raw count summed × 1000 / per_doc_word_count.
+            # Dividing by total_w gives a corpus-level rate per word; multiply
+            # by 1000 implicitly since the inputs are already per-1k.
             out[lk] = [[g, round(c / total_w, 4)] for g, c in top]
         else:
             out[lk] = [[g, round(c / total, 6)] for g, c in top]

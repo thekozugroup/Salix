@@ -9,11 +9,11 @@ Usage:
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import json
-import sys
 from pathlib import Path
+
+import _path  # noqa: F401
 
 
 def _table(rows: list[list[str]], headers: list[str]) -> str:

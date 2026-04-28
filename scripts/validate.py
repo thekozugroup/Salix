@@ -30,16 +30,15 @@ Run from the Salix root.
 
 from __future__ import annotations
 
-import _path  # noqa: F401
 import argparse
 import random
 from pathlib import Path
-from typing import Sequence
+
+import _path  # noqa: F401
 
 from lib.distance import compute_gaps
 from lib.io_utils import clean_text
 from lib.stats import aggregate, analyze
-
 
 # Topic-specific content vocabularies. Style knobs drive sentence shape;
 # topic vocabs only swap in nouns/verbs, leaving the stylistic skeleton
@@ -143,7 +142,6 @@ def generate_doc(profile: dict, topic: str, n_sentences: int, seed: int) -> str:
 
 def attribution_check(authors: int, docs_per_author: int, seed: int,
                       sentences_per_doc: int = 60) -> dict:
-    rng = random.Random(seed)
     profiles = [_style_profile(seed + i * 1009) for i in range(authors)]
     topics = list(TOPIC_NOUNS.keys())
 
@@ -182,7 +180,6 @@ def attribution_check(authors: int, docs_per_author: int, seed: int,
 
 
 def topic_transfer_check(authors: int, seed: int, sentences_per_doc: int = 60) -> dict:
-    rng = random.Random(seed)
     profiles = [_style_profile(seed + i * 1009) for i in range(authors)]
     topics = list(TOPIC_NOUNS.keys())
     if len(topics) < 2:
