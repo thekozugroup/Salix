@@ -9,26 +9,32 @@ edit loop; the Python scripts here do the measurement work.
 
 ## Quick start
 
-Run this from the Salix folder:
+### Claude app
 
-```bash
-./install.sh
-```
+1. Download `Salix.skill` from the latest GitHub release.
+2. Open Claude.
+3. Go to `Customize > Skills`.
+4. Click `+`, choose `Upload a skill`, and select `Salix.skill`.
+5. Toggle Salix on.
 
-Restart or reload your AI coding app, then ask:
+If Claude asks for a `.zip`, rename `Salix.skill` to `Salix.zip`; it is a ZIP
+bundle with a Claude-friendly extension.
+
+Then ask:
 
 ```text
 Build my Salix profile.
 ```
 
-For direct CLI use:
+### Claude Code or Codex
 
 ```bash
-./salix init --scope global
-cp ~/Documents/*.md ~/.salix/samples/
-./salix ingest --name default --scope global
-./salix benchmark --profile default --scope global
+git clone https://github.com/thekozugroup/Salix.git
+cd Salix
+./install.sh --force
 ```
+
+Restart or reload the agent, then ask: `Build my Salix profile.`
 
 ## Global and project styles
 
@@ -154,18 +160,44 @@ prior.
 ## Install options
 
 ```bash
-./install.sh                 # install globally for Codex and Claude Code
-./install.sh --codex         # Codex only
-./install.sh --claude        # Claude Code only
-./install.sh --project       # install in this project only
-./install.sh --force         # replace an existing Salix skill link
+python3 scripts/build_skill_bundle.py     # create dist/Salix.skill
+./install.sh --force                      # install globally for Codex + Claude Code
+./install.sh --codex --force              # Codex only
+./install.sh --claude --force             # Claude Code only
+./install.sh --project --force            # install in this project only
 ```
 
 Requires Python 3.9+. Pure stdlib at runtime; no required dependencies.
 Optional: `spacy` + `en_core_web_sm` for higher-quality formality scoring.
 
-After installing, restart or reload the app and Salix is
-available as a triggered skill.
+After installing, restart or reload the app and Salix is available as a
+triggered skill.
+
+Release bundles are built by `.github/workflows/release-bundle.yml` and
+attached as `Salix.skill` on tagged releases.
+
+## Copy/paste agent install prompt
+
+Use this when asking another AI coding agent to install Salix for you:
+
+```text
+Install Salix from https://github.com/thekozugroup/Salix.
+
+Goal: make Salix available as a personal skill and verify it works.
+
+Steps:
+1. Clone or update the repo.
+2. Run `./install.sh --force` from the repo root.
+3. Run `./salix status` and confirm it prints a Salix root, scope, profile count, and sample folder.
+4. Build the Claude upload bundle with `python3 scripts/build_skill_bundle.py`.
+5. Confirm `dist/Salix.skill` exists and is a valid zip archive containing `salix/SKILL.md`.
+6. Do not create AI co-authoring tags in any commits.
+
+Final reply:
+- Tell me where Salix was installed.
+- Tell me whether `dist/Salix.skill` was created.
+- Include the exact verification commands and results.
+```
 
 `SALIX_HOME` overrides the directory used for benchmarks/ and samples/
 (default: the resolved global/project scope). Set it when running multiple
@@ -284,6 +316,7 @@ salix                     # unified CLI (preferred entry point)
 scripts/                  # individual CLI entry points
   ingest.py               # samples/ → benchmark
   analyze.py              # text → stats JSON
+  build_skill_bundle.py    # create dist/Salix.skill for Claude upload
   compare.py              # stats vs benchmark → gap
   visualize.py            # render JSON as ASCII tables
   simulate_loop.py        # rule-based dry-run of the rewrite loop

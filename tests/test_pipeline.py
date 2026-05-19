@@ -648,6 +648,36 @@ class TestCLI(unittest.TestCase):
         self.assertIn("examples/convergence_demo.json", readme)
         self.assertIn("scripts/demo_convergence.py", readme)
 
+    def test_build_skill_bundle_contains_clean_salix_skill_folder(self):
+        import subprocess
+        import zipfile
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "Salix.skill"
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "build_skill_bundle.py"),
+                 "--out", str(out)],
+                capture_output=True, text=True,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertTrue(out.exists())
+            with zipfile.ZipFile(out) as zf:
+                names = set(zf.namelist())
+            self.assertIn("salix/SKILL.md", names)
+            self.assertIn("salix/salix", names)
+            self.assertIn("salix/lib/stats.py", names)
+            self.assertIn("salix/scripts/ingest.py", names)
+            self.assertIn("salix/samples/.gitkeep", names)
+            self.assertIn("salix/benchmarks/.gitkeep", names)
+            self.assertNotIn("salix/tests/test_pipeline.py", names)
+            self.assertFalse(any("__pycache__" in name for name in names))
+
+    def test_readme_includes_copy_paste_agent_install_prompt(self):
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("Copy/paste agent install prompt", readme)
+        self.assertIn("Salix.skill", readme)
+        self.assertIn("scripts/build_skill_bundle.py", readme)
+
 
 class TestSimulator(unittest.TestCase):
     """Validate the rewrite-loop mechanics using the rule-based simulator."""

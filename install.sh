@@ -111,7 +111,10 @@ esac
 
 echo
 echo "Next:"
-echo "  1. Restart or reload your AI coding app."
+echo "  1. Restart or reload Claude Code / Codex."
 echo "  2. Ask: \"Build my Salix profile.\""
-echo "  3. Verify the CLI:"
+echo "  3. For Claude app upload, run:"
+echo "     ${SCRIPT_DIR}/scripts/build_skill_bundle.py"
+echo "     then upload ${SCRIPT_DIR}/dist/Salix.skill in Customize > Skills."
+echo "  4. Verify the CLI:"
 echo "     ${SCRIPT_DIR}/salix status"

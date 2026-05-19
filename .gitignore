@@ -7,3 +7,4 @@ benchmarks/*.json
 samples/*
 !samples/.gitkeep
 /tmp/salix_*
+dist/
