@@ -295,19 +295,6 @@ instructions in `SKILL.md` describe that loop. `salix simulate` exists to
 validate the loop mechanics (distance decreases, loop halts) before
 investing LLM calls.
 
-## Why Python instead of Rust
-
-The original sketch proposed Rust. It was rejected for v1 because:
-
-1. Distribution friction — a skill folder must run on whatever platform the
-   user is on. Pure Python avoids cross-compilation and binary shipping.
-2. Speed isn't the bottleneck — even on a 100k-word corpus, ingest finishes
-   in well under a second. The orchestration loop is dominated by LLM edit
-   latency, not Python feature extraction.
-3. Clean upgrade path — `lib/stats.py` exposes one function (`analyze`).
-   Replace it with a PyO3 binding any time without changing the rest of the
-   skill.
-
 ## Layout
 
 ```
