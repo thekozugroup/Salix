@@ -21,9 +21,9 @@ Prompt:
 Write a short Baker Street case note about a missing railway ticket.
 ```
 
-| Full AI-generated draft | Salix-stylized draft |
-| --- | --- |
-| Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route. | To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case. |
+| Base prompt only | Prompt plus "write in the style of Sherlock Holmes" | Base prompt plus Salix |
+| --- | --- | --- |
+| Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route. | In the dim light of Baker Street, Holmes turned the railway ticket between his long fingers and gave one of those thin smiles which usually meant the matter had already resolved itself in his mind. The missing object, he said, was never truly missing at all. | To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case. |
 
 This is an illustrative product demo, not a universal guarantee. A real Salix
 pass depends on the user's benchmark, the draft, the threshold, and whether the

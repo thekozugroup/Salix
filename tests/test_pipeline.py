@@ -648,6 +648,13 @@ class TestCLI(unittest.TestCase):
         self.assertIn("examples/convergence_demo.json", readme)
         self.assertIn("scripts/demo_convergence.py", readme)
 
+    def test_docs_compare_base_style_prompt_and_salix_outputs(self):
+        for rel in ["README.md", "examples/README.md"]:
+            doc = (ROOT / rel).read_text()
+            self.assertIn("Base prompt only", doc)
+            self.assertIn('Prompt plus "write in the style of Sherlock Holmes"', doc)
+            self.assertIn("Base prompt plus Salix", doc)
+
     def test_build_skill_bundle_contains_clean_salix_skill_folder(self):
         import subprocess
         import zipfile
