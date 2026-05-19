@@ -4,6 +4,7 @@
 Subcommands:
     salix status                       — quick state report
     salix profiles                     — list saved benchmarks
+    salix init [--scope global|project] — create profile store folders
     salix ingest [--name N] [--samples DIR]
     salix analyze FILE
     salix compare FILE [--profile N]
@@ -13,6 +14,8 @@ Subcommands:
     salix help
 
 The default profile is "default". Run `salix status` first if unsure.
+Use `--scope global` for ~/.salix or `--scope project` for .salix in the
+current project. `--scope auto` prefers project, then global.
 """
 
 from __future__ import annotations
@@ -33,15 +36,97 @@ from lib.distance import compute_gaps  # noqa: E402
 from lib.io_utils import load_text  # noqa: E402
 from lib.stats import analyze  # noqa: E402
 
-# SALIX_HOME points to where benchmarks/ and samples/ live. Defaults to the
-# script's own directory (the dev/install path). Tests and multi-user
-# deployments should override it to keep state isolated from the install dir.
+# SALIX_HOME points to where benchmarks/ and samples/ live. It is resolved
+# at runtime from explicit flags, legacy env vars, and global/project scope.
 SALIX_HOME = Path(os.environ.get("SALIX_HOME", str(ROOT)))
 BENCH_DIR = SALIX_HOME / "benchmarks"
 SAMPLES_DIR = SALIX_HOME / "samples"
+ACTIVE_SCOPE = "install"
+
+
+def _global_home() -> Path:
+    return Path(os.environ.get("SALIX_GLOBAL_HOME", str(Path.home() / ".salix"))).expanduser()
+
+
+def _project_home(project_dir: str | None = None) -> Path:
+    base = Path(project_dir).expanduser() if project_dir else Path.cwd()
+    base = base.resolve()
+    for candidate in [base] + list(base.parents):
+        salix_dir = candidate / ".salix"
+        if salix_dir.exists():
+            return salix_dir
+        if any((candidate / marker).exists() for marker in [".git", "pyproject.toml", "package.json", "Cargo.toml"]):
+            return salix_dir
+    return base / ".salix"
+
+
+def _has_local_state(home: Path) -> bool:
+    return (home / "benchmarks").exists() or (home / "samples").exists()
+
+
+def _resolve_home(
+    scope: str | None = None,
+    home: str | None = None,
+    project_dir: str | None = None,
+) -> tuple[Path, str]:
+    """Resolve the active profile store.
+
+    Precedence:
+      1. --home PATH
+      2. SALIX_HOME (legacy single-store mode)
+      3. --scope / SALIX_SCOPE
+      4. auto: project .salix if present, else global ~/.salix
+    """
+    if home:
+        return Path(home).expanduser().resolve(), "custom"
+
+    if os.environ.get("SALIX_HOME"):
+        return Path(os.environ["SALIX_HOME"]).expanduser().resolve(), "env"
+
+    selected = scope or os.environ.get("SALIX_SCOPE", "auto")
+    if selected == "global":
+        return _global_home().resolve(), "global"
+    if selected == "project":
+        return _project_home(project_dir), "project"
+    if selected == "install":
+        return ROOT, "install"
+    if selected != "auto":
+        raise SystemExit(f"Unknown scope '{selected}'. Use auto, global, project, or install.")
+
+    project = _project_home(project_dir)
+    if _has_local_state(project):
+        return project, "project"
+    global_home = _global_home()
+    if _has_local_state(global_home):
+        return global_home.resolve(), "global"
+    return global_home.resolve(), "global"
+
+
+def _configure_home(args) -> None:
+    global SALIX_HOME, BENCH_DIR, SAMPLES_DIR, ACTIVE_SCOPE
+    SALIX_HOME, ACTIVE_SCOPE = _resolve_home(
+        getattr(args, "scope", None),
+        getattr(args, "home", None),
+        getattr(args, "project_dir", None),
+    )
+    BENCH_DIR = SALIX_HOME / "benchmarks"
+    SAMPLES_DIR = SALIX_HOME / "samples"
+
+
+def _add_scope_flags(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--scope",
+        choices=["auto", "global", "project", "install"],
+        default=None,
+        help="Profile store to use: auto, global (~/.salix), project (.salix), or explicit install dir",
+    )
+    parser.add_argument("--home", help="Custom Salix home directory (overrides scope)")
+    parser.add_argument("--project-dir", help="Project directory for --scope project/auto")
 
 
 def _bench_path(name: str) -> Path:
+    if not name or name in {".", ".."} or "/" in name or "\\" in name:
+        raise SystemExit("Profile names may only be simple names like 'default' or 'client-a'.")
     return BENCH_DIR / f"{name}.json"
 
 
@@ -100,14 +185,29 @@ def _list_profiles() -> list[str]:
     return sorted(p.stem for p in BENCH_DIR.glob("*.json"))
 
 
+def _sample_file_count(limit: int = 1000) -> str:
+    if not SAMPLES_DIR.exists():
+        return "0"
+    count = 0
+    for pattern in ("*.txt", "*.md"):
+        for _path in SAMPLES_DIR.rglob(pattern):
+            count += 1
+            if count >= limit:
+                return f"{limit}+"
+    return str(count)
+
+
 def cmd_status(args):
     profiles = _list_profiles()
-    sample_files = sorted(list(SAMPLES_DIR.rglob("*.txt")) + list(SAMPLES_DIR.rglob("*.md"))) if SAMPLES_DIR.exists() else []
     print(f"Salix root:       {ROOT}")
     print(f"SALIX_HOME:       {SALIX_HOME}")
+    print(f"Scope:            {ACTIVE_SCOPE}")
+    print(f"Project home:     {_project_home(getattr(args, 'project_dir', None))}")
+    print(f"Global home:      {_global_home().resolve()}")
+    print("Auto order:       project -> global")
     print(f"Version:          {__version__}")
     print(f"Profiles:         {len(profiles)}  ({', '.join(profiles) if profiles else 'none'})")
-    print(f"Sample files:     {len(sample_files)}")
+    print(f"Sample files:     {_sample_file_count()}")
     if profiles:
         for name in profiles:
             try:
@@ -119,13 +219,38 @@ def cmd_status(args):
             print(f"  - {name:20} {stats.get('total_word_count', 0):>7,} words from "
                   f"{stats.get('sample_count', '?')} samples (created {data.get('created_at', '?')})")
     if not profiles:
-        print("\nNext step: drop writing samples in samples/ then run `salix ingest`.")
+        print("\nNo style profile found.")
+        print("\nNext steps:")
+        print(f"  1. Add .txt or .md writing samples to {SAMPLES_DIR}/")
+        print("  2. Build your profile:")
+        print("     ./salix ingest --name default")
+        print("  3. Check it:")
+        print("     ./salix benchmark --profile default")
+        print("\nTip: 3,000+ words is good. 10,000+ is better.")
     return 0
 
 
 def cmd_profiles(args):
     for name in _list_profiles():
         print(name)
+    return 0
+
+
+def cmd_init(args):
+    BENCH_DIR.mkdir(parents=True, exist_ok=True)
+    SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
+    if ACTIVE_SCOPE == "project":
+        gitignore = SALIX_HOME / ".gitignore"
+        if not gitignore.exists():
+            gitignore.write_text("*\n!.gitignore\n")
+    print("Salix profile store ready.")
+    print(f"Scope:            {ACTIVE_SCOPE}")
+    print(f"SALIX_HOME:       {SALIX_HOME}")
+    print(f"Samples:          {SAMPLES_DIR}")
+    print(f"Benchmarks:       {BENCH_DIR}")
+    print("\nNext:")
+    print(f"  1. Put .txt or .md writing samples in {SAMPLES_DIR}/")
+    print("  2. Run: ./salix ingest --name default")
     return 0
 
 
@@ -242,11 +367,18 @@ def cmd_simulate(args):
     import random
     random.seed(args.seed)
     result = run_loop(text, bench_stats, args.max_iter, args.threshold, verbose=args.verbose)
-    print(f"\nStop reason: {result['stop_reason']}")
-    print(f"Iterations:  {len(result['history'])}")
-    print("Distance trajectory:", " → ".join(f"{h['distance']:.3f}" for h in result["history"]))
     if args.out:
         Path(args.out).write_text(result["final_text"])
+    if args.json:
+        json.dump(result, sys.stdout, indent=2 if args.pretty else None)
+        sys.stdout.write("\n")
+        return 0
+    print(f"\nStop reason: {result['stop_reason']}")
+    print(f"Iterations:  {len(result['history'])}")
+    print("Distance trajectory:", " -> ".join(f"{h['distance']:.3f}" for h in result["history"]))
+    from scripts.visualize import render_convergence  # type: ignore
+    print(render_convergence(result["history"]))
+    if args.out:
         print(f"Final text written to {args.out}")
     return 0
 
@@ -261,14 +393,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"salix {__version__}")
     sub = p.add_subparsers(dest="cmd", required=True)
 
-    sub.add_parser("status", help="Show profiles, samples, and next-step suggestions").set_defaults(fn=cmd_status)
-    sub.add_parser("profiles", help="List saved benchmarks").set_defaults(fn=cmd_profiles)
+    p_status = sub.add_parser("status", help="Show profiles, samples, and next-step suggestions")
+    _add_scope_flags(p_status)
+    p_status.set_defaults(fn=cmd_status)
+
+    p_profiles = sub.add_parser("profiles", help="List saved benchmarks")
+    _add_scope_flags(p_profiles)
+    p_profiles.set_defaults(fn=cmd_profiles)
+
+    p_init = sub.add_parser("init", help="Create a global or project Salix profile store")
+    _add_scope_flags(p_init)
+    p_init.set_defaults(fn=cmd_init)
+
     sub.add_parser("help", help="Show full CLI help").set_defaults(fn=cmd_help)
 
     p_ing = sub.add_parser("ingest", help="Build a benchmark from samples")
     p_ing.add_argument("--name", default="default")
     p_ing.add_argument("--samples", help=f"Sample directory (default: {SAMPLES_DIR})")
     p_ing.add_argument("--min-words", type=int, default=300)
+    _add_scope_flags(p_ing)
     p_ing.set_defaults(fn=cmd_ingest)
 
     p_an = sub.add_parser("analyze", help="Analyze a single file")
@@ -282,16 +425,19 @@ def build_parser() -> argparse.ArgumentParser:
     p_cmp.add_argument("--profile", default="default")
     p_cmp.add_argument("--json", action="store_true")
     p_cmp.add_argument("--pretty", action="store_true")
+    _add_scope_flags(p_cmp)
     p_cmp.set_defaults(fn=cmd_compare)
 
     p_gap = sub.add_parser("gap", help="Show gap report for a file (visualized)")
     p_gap.add_argument("path")
     p_gap.add_argument("--profile", default="default")
     p_gap.add_argument("--pretty", action="store_true")
+    _add_scope_flags(p_gap)
     p_gap.set_defaults(fn=cmd_gap)
 
     p_b = sub.add_parser("benchmark", help="Visualize a saved benchmark")
     p_b.add_argument("--profile", default="default")
+    _add_scope_flags(p_b)
     p_b.set_defaults(fn=cmd_benchmark)
 
     p_val = sub.add_parser("validate", help="Run the empirical validation harness")
@@ -317,6 +463,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_sim.add_argument("--seed", type=int, default=0)
     p_sim.add_argument("--verbose", action="store_true")
     p_sim.add_argument("--out")
+    p_sim.add_argument("--json", action="store_true")
+    p_sim.add_argument("--pretty", action="store_true")
+    _add_scope_flags(p_sim)
     p_sim.set_defaults(fn=cmd_simulate)
 
     return p
@@ -325,6 +474,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    _configure_home(args)
     return args.fn(args)
 
 

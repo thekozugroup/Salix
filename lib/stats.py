@@ -11,6 +11,7 @@ import re
 import threading as _threading
 from collections import Counter
 from collections.abc import Iterable
+from functools import lru_cache
 
 from .function_words import FUNCTION_WORDS
 from .tone import heylighen_f_score, tone_metrics
@@ -275,6 +276,7 @@ def _get_pyphen():
     return _PYPHEN_DIC
 
 
+@lru_cache(maxsize=8192)
 def estimate_syllables(word: str) -> int:
     """Syllable count — pyphen if available, vowel-group heuristic fallback.
 

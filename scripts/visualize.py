@@ -5,6 +5,7 @@ Usage:
     python3 scripts/visualize.py benchmarks/default.json
     python3 scripts/visualize.py /tmp/salix_target.stats.json
     python3 scripts/visualize.py /tmp/salix_gap.json    # auto-detects gap report
+    python3 scripts/visualize.py /tmp/convergence.json  # salix simulate --json output
 """
 
 from __future__ import annotations
@@ -31,6 +32,10 @@ def _is_gap_report(d: dict) -> bool:
 
 def _is_benchmark(d: dict) -> bool:
     return "stats" in d and isinstance(d.get("stats"), dict)
+
+
+def _is_convergence_report(d: dict) -> bool:
+    return "history" in d and isinstance(d.get("history"), list)
 
 
 def render_stats(stats: dict, header: str = "STATS") -> str:
@@ -121,6 +126,23 @@ def render_gap(report: dict) -> str:
     return "\n".join(out)
 
 
+def render_convergence(history: list[dict]) -> str:
+    if not history:
+        return "No convergence history recorded."
+    distances = [float(h.get("distance", 0.0)) for h in history]
+    start = max(distances[0], 0.001)
+    rows = []
+    for idx, item in enumerate(history):
+        distance = float(item.get("distance", 0.0))
+        remaining = max(0.0, min(1.0, distance / start))
+        bar = "#" * max(1, round(remaining * 24))
+        rows.append([str(item.get("iter", idx)), f"{distance:.3f}", item.get("top_gap", ""), bar])
+    return "\n".join([
+        "\n[Convergence by recursive edit]",
+        _table(rows, ["iter", "distance", "top_gap", "chart"]),
+    ])
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Render Salix stats or gap report as tables.")
     ap.add_argument("path", help="Path to a stats, benchmark, or gap-report JSON")
@@ -129,6 +151,8 @@ def main() -> int:
     data = json.loads(Path(args.path).read_text())
     if _is_gap_report(data):
         print(render_gap(data))
+    elif _is_convergence_report(data):
+        print(render_convergence(data["history"]))
     elif _is_benchmark(data):
         print(f"\nBenchmark: {data.get('name', '?')}  ({data['stats'].get('total_word_count', 0):,} words from {data['stats'].get('sample_count', '?')} samples)")
         print(render_stats(data["stats"], header=f"BENCHMARK '{data.get('name', '?')}'"))

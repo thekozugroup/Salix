@@ -184,6 +184,20 @@ def pick_edits(gap_report: dict):
 
 def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: float,
              verbose: bool = False) -> dict:
+    def finish(final_text: str, stop_reason: str) -> dict:
+        initial = history[0]["distance"] if history else 0.0
+        final = history[-1]["distance"] if history else 0.0
+        improvement = initial - final
+        improvement_pct = (improvement / initial * 100.0) if initial else 0.0
+        return {
+            "final_text": final_text,
+            "history": history,
+            "stop_reason": stop_reason,
+            "initial_distance": initial,
+            "final_distance": final,
+            "improvement_pct": improvement_pct,
+        }
+
     history = []
     text = target_text
     last_distance = None
@@ -192,7 +206,11 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
     for i in range(max_iter):
         stats = analyze(text)
         gap = compute_gaps(stats, benchmark_stats)
-        history.append({"iter": i, "distance": gap["total_distance"]})
+        entry = {"iter": i, "distance": gap["total_distance"]}
+        if gap["top_gaps"]:
+            entry["top_gap"] = gap["top_gaps"][0]["feature"]
+            entry["top_gap_z"] = gap["top_gaps"][0]["z_distance"]
+        history.append(entry)
 
         if verbose:
             top = gap["top_gaps"][:1]
@@ -201,12 +219,12 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
 
         if gap["total_distance"] < threshold:
             history[-1]["status"] = "converged"
-            return {"final_text": text, "history": history, "stop_reason": "converged"}
+            return finish(text, "converged")
 
         if last_distance is not None and abs(gap["total_distance"] - last_distance) < 0.001:
             plateau += 1
             if plateau >= 2:
-                return {"final_text": text, "history": history, "stop_reason": "plateau"}
+                return finish(text, "plateau")
         else:
             plateau = 0
         last_distance = gap["total_distance"]
@@ -216,17 +234,20 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
         for edit_fn, gap_item in pick_edits(gap):
             attempt = edit_fn(text)
             if attempt != text:
-                new_text = attempt
-                chosen_gap = gap_item
-                break
+                attempt_distance = compute_gaps(analyze(attempt), benchmark_stats)["total_distance"]
+                if attempt_distance <= gap["total_distance"] + 0.001:
+                    new_text = attempt
+                    chosen_gap = gap_item
+                    break
         if new_text == text:
-            return {"final_text": text, "history": history,
-                    "stop_reason": "no_applicable_rule_changed_text"}
+            return finish(text, "no_applicable_rule_changed_text")
         if verbose and chosen_gap:
             print(f"           applied edit for {chosen_gap['feature']}")
+        if chosen_gap:
+            history[-1]["applied_edit"] = chosen_gap["feature"]
         text = new_text
 
-    return {"final_text": text, "history": history, "stop_reason": "max_iter"}
+    return finish(text, "max_iter")
 
 
 def main() -> int:

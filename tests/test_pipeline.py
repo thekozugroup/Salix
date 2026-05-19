@@ -4,6 +4,7 @@ Run with:  python3 -m unittest discover tests/
 """
 
 import json
+import os
 import sys
 import tempfile
 import unittest
@@ -41,6 +42,14 @@ The system has been redesigned. New features were added. Performance is
 better now. Users seem happy with the changes. There were some bugs but
 those got fixed. Overall it's working as intended.
 """
+
+
+def clean_cli_env(**overrides):
+    env = os.environ.copy()
+    for key in ["SALIX_HOME", "SALIX_SCOPE", "SALIX_GLOBAL_HOME", "SALIX_PROJECT_HOME"]:
+        env.pop(key, None)
+    env.update(overrides)
+    return env
 
 
 class TestStats(unittest.TestCase):
@@ -338,6 +347,175 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertIn("Salix root:", res.stdout)
 
+    def test_init_project_scope_creates_local_salix_home(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "init", "--scope", "project"],
+                capture_output=True, text=True,
+                cwd=tmp,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertTrue((Path(tmp) / ".salix" / "benchmarks").is_dir())
+            self.assertTrue((Path(tmp) / ".salix" / "samples").is_dir())
+            self.assertIn("Scope:            project", res.stdout)
+
+    def test_status_scope_project_uses_project_salix_home(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            project_home = Path(tmp) / ".salix"
+            (project_home / "benchmarks").mkdir(parents=True)
+            (project_home / "samples").mkdir()
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status", "--scope", "project"],
+                capture_output=True, text=True,
+                cwd=tmp,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {project_home.resolve()}", res.stdout)
+            self.assertIn("Scope:            project", res.stdout)
+
+    def test_status_scope_global_uses_home_salix_home(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "user"
+            home.mkdir()
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status", "--scope", "global"],
+                capture_output=True, text=True,
+                env=clean_cli_env(HOME=str(home), PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {(home / '.salix').resolve()}", res.stdout)
+            self.assertIn("Scope:            global", res.stdout)
+
+    def test_home_override_takes_precedence_over_scope(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            custom = Path(tmp) / "custom-style-home"
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status",
+                 "--scope", "global", "--home", str(custom)],
+                capture_output=True, text=True,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {custom.resolve()}", res.stdout)
+            self.assertIn("Scope:            custom", res.stdout)
+
+    def test_auto_prefers_project_profile_over_global(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            user_home = Path(tmp) / "user"
+            project = Path(tmp) / "project"
+            global_home = user_home / ".salix"
+            project_home = project / ".salix"
+            (global_home / "samples").mkdir(parents=True)
+            (global_home / "benchmarks").mkdir()
+            (project_home / "samples").mkdir(parents=True)
+            (project_home / "benchmarks").mkdir()
+            (global_home / "samples" / "a.md").write_text((SAMPLE_CASUAL + "\n") * 6)
+            (project_home / "samples" / "a.md").write_text((SAMPLE_FORMAL + "\n") * 6)
+            env = clean_cli_env(HOME=str(user_home), PYTHONPATH=str(ROOT))
+
+            for scope, cwd in [("global", tmp), ("project", project)]:
+                res = subprocess.run(
+                    [sys.executable, str(ROOT / "salix"), "ingest",
+                     "--name", "default", "--scope", scope, "--min-words", "100"],
+                    capture_output=True, text=True, cwd=cwd, env=env,
+                )
+                self.assertEqual(res.returncode, 0, res.stderr)
+
+            draft = Path(tmp) / "draft.md"
+            draft.write_text(TARGET_DRAFT)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "compare", str(draft),
+                 "--profile", "default", "--json"],
+                capture_output=True, text=True, cwd=project, env=env,
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            auto_report = json.loads(res.stdout)
+            project_report = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "compare", str(draft),
+                 "--profile", "default", "--scope", "project", "--json"],
+                capture_output=True, text=True, cwd=project, env=env,
+            )
+            self.assertEqual(project_report.returncode, 0, project_report.stderr)
+            self.assertEqual(auto_report["total_distance"],
+                             json.loads(project_report.stdout)["total_distance"])
+
+    def test_profile_name_rejects_path_traversal(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            (home / "benchmarks").mkdir(parents=True)
+            (home / "samples").mkdir()
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "benchmark",
+                 "--profile", "../outside", "--home", str(home)],
+                capture_output=True, text=True,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn("Profile names may only be simple names", res.stderr + res.stdout)
+
+    def test_auto_defaults_to_global_when_no_project_state_exists(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "user"
+            project = Path(tmp) / "project"
+            project.mkdir()
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status"],
+                capture_output=True, text=True,
+                cwd=project,
+                env=clean_cli_env(HOME=str(home), PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {(home / '.salix').resolve()}", res.stdout)
+            self.assertIn("Scope:            global", res.stdout)
+
+    def test_project_scope_discovers_parent_salix_home(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            nested = root / "a" / "b"
+            project_home = root / ".salix"
+            (project_home / "benchmarks").mkdir(parents=True)
+            (project_home / "samples").mkdir()
+            nested.mkdir(parents=True)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status", "--scope", "project"],
+                capture_output=True, text=True,
+                cwd=nested,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {project_home.resolve()}", res.stdout)
+
+    def test_auto_does_not_use_unrelated_parent_salix_above_project_root(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            outer = Path(tmp) / "outer"
+            repo = outer / "repo"
+            nested = repo / "src"
+            (outer / ".salix" / "benchmarks").mkdir(parents=True)
+            (outer / ".salix" / "samples").mkdir()
+            (repo / ".git").mkdir(parents=True)
+            nested.mkdir(parents=True)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "status"],
+                capture_output=True, text=True,
+                cwd=nested,
+                env=clean_cli_env(HOME=str(home), PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn(f"SALIX_HOME:       {(home / '.salix').resolve()}", res.stdout)
+            self.assertIn("Scope:            global", res.stdout)
+
     def test_ingest_then_compare_via_cli(self):
         """End-to-end CLI test, fully isolated via SALIX_HOME — never writes
         to the installed skill's benchmarks/ dir."""
@@ -381,6 +559,57 @@ class TestCLI(unittest.TestCase):
         )
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertIn("salix", res.stdout.lower())
+
+    def test_simulate_json_outputs_convergence_history(self):
+        import os as _os
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp) / "home"
+            (home / "samples").mkdir(parents=True)
+            (home / "benchmarks").mkdir()
+            (home / "samples" / "a.md").write_text((SAMPLE_FORMAL + "\n") * 6)
+            env = {**_os.environ, "SALIX_HOME": str(home), "PYTHONPATH": str(ROOT)}
+            ingest = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "ingest",
+                 "--name", "jsonhist", "--min-words", "100"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(ingest.returncode, 0, ingest.stderr)
+            draft = Path(tmp) / "draft.md"
+            draft.write_text(TARGET_DRAFT)
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "salix"), "simulate", str(draft),
+                 "--profile", "jsonhist", "--max-iter", "4", "--json"],
+                capture_output=True, text=True, env=env,
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            payload = json.loads(res.stdout)
+            self.assertIn("history", payload)
+            self.assertIn("stop_reason", payload)
+            self.assertGreater(len(payload["history"]), 0)
+            self.assertIn("distance", payload["history"][0])
+            self.assertIn("initial_distance", payload)
+            self.assertIn("final_distance", payload)
+            self.assertIn("improvement_pct", payload)
+
+    def test_visualize_renders_convergence_json(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "convergence.json"
+            path.write_text(json.dumps({
+                "history": [
+                    {"iter": 0, "distance": 2.0, "top_gap": "mean_sent_len"},
+                    {"iter": 1, "distance": 1.0, "top_gap": "comma_per_sentence"},
+                ],
+                "stop_reason": "max_iter",
+            }))
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "visualize.py"), str(path)],
+                capture_output=True, text=True,
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertIn("Convergence by recursive edit", res.stdout)
+            self.assertIn("mean_sent_len", res.stdout)
 
 
 class TestSimulator(unittest.TestCase):

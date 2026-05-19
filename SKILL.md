@@ -45,16 +45,37 @@ The unified `./salix` CLI is the preferred entry point. Run `./salix help`
 for the full subcommand reference. The underlying `scripts/*.py` remain
 available for direct use.
 
+## Profile scopes
+
+Salix supports both personal and project-specific style profiles:
+
+- **Global** profiles live in `~/.salix` and follow the user across projects.
+- **Project** profiles live in `<project>/.salix` and keep a client, repo, or
+  writing context separate.
+- **Auto** scope prefers a project profile when `.salix/` exists in the current
+  project tree; otherwise it falls back to the global profile store.
+- `SALIX_HOME` still overrides all scope behavior for legacy or advanced use.
+
+Useful commands:
+
+```
+./salix init --scope global
+./salix init --scope project
+./salix ingest --name default --scope global
+./salix ingest --name client-a --scope project
+./salix compare draft.md --profile default --scope auto
+```
+
 ## Workflow
 
 ### 1. First run — Build the benchmark
 
 If `benchmarks/default.json` does not exist (check with `./salix status`):
 
-1. Tell the user: *"No style profile found. Drop your prior writing into `samples/` (any mix of `.txt`, `.md`) or paste samples and I'll create files. I need at least ~3,000 words for a stable fingerprint; 10,000+ is better."*
+1. Tell the user: *"No style profile found. Choose global voice (`./salix init --scope global`) or project voice (`./salix init --scope project`), then drop prior writing into the shown `samples/` folder. I need at least ~3,000 words for a stable fingerprint; 10,000+ is better."*
 2. After samples are in place, run:
    ```
-   ./salix ingest --name default
+   ./salix ingest --name default --scope auto
    ```
 3. Then run `./salix benchmark --profile default` and present the table to the user as the captured fingerprint.
 4. Confirm: *"Benchmark saved. Ready to rewrite documents in this style."*
@@ -113,6 +134,8 @@ After the loop:
 
 - **Convergence threshold** — `--threshold 0.15` (tighter = closer match, may over-edit). Default 0.15.
 - **Max iterations** — `--max-iter 6`. Larger = more passes; diminishing returns past 4.
+- **Profile scope** — `--scope auto|global|project|install` chooses where
+  benchmarks and samples live. Use `--home PATH` for a custom store.
 - **Feature weights** — `lib/distance.py:FEATURE_WEIGHTS`. Punctuation and function-word distributions weighted highest; readability lowest (it correlates with the others).
 - **Topic filter** — `lib/function_words.py:FUNCTION_WORDS` is the closed-class allowlist. Vocabulary statistics only consider words in this set, making the fingerprint topic-blind.
 
