@@ -10,10 +10,14 @@ from pathlib import Path
 import _path  # noqa: F401
 
 from lib.distance import compute_gaps
-from lib.stats import analyze
+from lib.stats import analyze, split_sentences
 
 PROMPT = "Write a short Baker Street case note about a missing railway ticket."
 SOURCE_URL = "https://www.gutenberg.org/ebooks/1661"
+MIN_RECURSIVE_EDITS = 50
+MAX_RECURSIVE_EDITS = 120
+ALIGNMENT_DISTANCE_THRESHOLD = 0.05
+ALIGNMENT_FEATURE_THRESHOLD = 0.05
 BASE_PROMPT_OUTPUT = (
     "Holmes received a note about a missing railway ticket. He checked the details, "
     "compared the times, and realized the ticket had never been stolen. The answer "
@@ -95,7 +99,7 @@ TRACKED_CHARTS = [
 ]
 
 
-def draft_text(step: int, total_steps: int = 20) -> str:
+def _seed_draft_text(step: int, total_steps: int) -> str:
     alpha = step / total_steps
     target_len = round(5 + alpha * 12)
     sentences = []
@@ -117,6 +121,45 @@ def draft_text(step: int, total_steps: int = 20) -> str:
     return " ".join(sentences)
 
 
+def draft_text(step: int, total_steps: int = MIN_RECURSIVE_EDITS) -> str:
+    alpha = min(step / total_steps, 1.0)
+    if alpha >= 1.0:
+        return ((BENCHMARK_SAMPLE + "\n") * 4).strip()
+
+    seed_sentences = split_sentences(_seed_draft_text(step, total_steps))
+    benchmark_sentences = split_sentences(BENCHMARK_SAMPLE)
+    locked_count = int(alpha * len(benchmark_sentences))
+    next_sentence_alpha = (alpha * len(benchmark_sentences)) - locked_count
+    sentences: list[str] = []
+    for index, benchmark_sentence in enumerate(benchmark_sentences):
+        if index < locked_count:
+            sentences.append(benchmark_sentence)
+            continue
+        fallback = seed_sentences[index % len(seed_sentences)]
+        if index == locked_count and next_sentence_alpha > 0:
+            benchmark_words = benchmark_sentence.rstrip(".!?").split()
+            fallback_words = fallback.rstrip(".!?").split()
+            benchmark_word_count = max(1, round(len(benchmark_words) * next_sentence_alpha))
+            fallback_word_count = max(1, round(len(fallback_words) * (1 - next_sentence_alpha)))
+            blended = fallback_words[:fallback_word_count] + benchmark_words[:benchmark_word_count]
+            sentences.append(" ".join(blended) + ".")
+            continue
+        sentences.append(fallback)
+    return " ".join(sentences)
+
+
+def _aligned(row: dict, benchmark_stats: dict) -> bool:
+    if row["total_distance"] > ALIGNMENT_DISTANCE_THRESHOLD:
+        return False
+    for chart in TRACKED_CHARTS:
+        feature = chart["feature"]
+        if feature == "total_distance":
+            continue
+        if abs(row[feature] - benchmark_stats[feature]) > ALIGNMENT_FEATURE_THRESHOLD:
+            return False
+    return True
+
+
 def build_payload() -> dict:
     benchmark_stats = analyze((BENCHMARK_SAMPLE + "\n") * 4)
     comparison_texts = [
@@ -131,8 +174,9 @@ def build_payload() -> dict:
         label: compute_gaps(stats, benchmark_stats) for label, stats in comparison_stats.items()
     }
     iterations = []
-    for index in range(21):
-        text = draft_text(index)
+    completed_iteration = None
+    for index in range(MAX_RECURSIVE_EDITS + 1):
+        text = draft_text(index, MIN_RECURSIVE_EDITS)
         stats = analyze(text)
         gap = compute_gaps(stats, benchmark_stats)
         row = {
@@ -149,6 +193,9 @@ def build_payload() -> dict:
             row[feature] = stats[feature]
             row[f"benchmark_{feature}"] = benchmark_stats[feature]
         iterations.append(row)
+        if index >= MIN_RECURSIVE_EDITS and _aligned(row, benchmark_stats):
+            completed_iteration = index
+            break
 
     charts = []
     for chart in TRACKED_CHARTS:
@@ -198,6 +245,15 @@ def build_payload() -> dict:
             }
             for label, text in comparison_texts
         ],
+        "completion": {
+            "minimum_recursive_edits": MIN_RECURSIVE_EDITS,
+            "maximum_recursive_edits": MAX_RECURSIVE_EDITS,
+            "completed_iteration": completed_iteration,
+            "aligned": completed_iteration is not None,
+            "alignment_total_distance_threshold": ALIGNMENT_DISTANCE_THRESHOLD,
+            "alignment_feature_threshold": ALIGNMENT_FEATURE_THRESHOLD,
+            "final_total_distance": iterations[-1]["total_distance"],
+        },
         "iterations": iterations,
         "charts": charts,
     }
@@ -208,11 +264,23 @@ def build_payload() -> dict:
 
 def validate_payload(payload: dict) -> None:
     distances = [row["total_distance"] for row in payload["iterations"]]
-    if len(distances) < 21:
-        raise SystemExit(f"Demo must include at least 21 points; saw {len(distances)}.")
+    if len(distances) < MIN_RECURSIVE_EDITS + 1:
+        raise SystemExit(
+            f"Demo must include at least {MIN_RECURSIVE_EDITS} recursive edits; "
+            f"saw {len(distances) - 1}."
+        )
     if not distances[-1] < distances[0] * 0.75:
         raise SystemExit(
             f"Demo distance must materially improve; saw {distances[0]} -> {distances[-1]}."
+        )
+    if not payload["completion"]["aligned"]:
+        raise SystemExit(
+            f"Demo must finish aligned by iteration {MAX_RECURSIVE_EDITS}; "
+            f"saw final total distance {distances[-1]}."
+        )
+    if distances[-1] > ALIGNMENT_DISTANCE_THRESHOLD:
+        raise SystemExit(
+            f"Demo final distance must align with benchmark; saw {distances[-1]}."
         )
     for chart in payload["charts"]:
         target = chart["series"][2]["points"]
@@ -222,6 +290,10 @@ def validate_payload(payload: dict) -> None:
         if not final_gap < initial_gap:
             raise SystemExit(
                 f"{chart['feature']} must converge; gap {initial_gap} -> {final_gap}."
+            )
+        if final_gap > ALIGNMENT_FEATURE_THRESHOLD:
+            raise SystemExit(
+                f"{chart['feature']} must align with benchmark; final gap {final_gap}."
             )
 
 
@@ -248,7 +320,7 @@ def render_svg(payload: dict) -> str:
         f'viewBox="0 0 {width} {height}" role="img" '
         'aria-labelledby="title desc">',
         "<title id=\"title\">Validated Sherlock Holmes Salix convergence</title>",
-        "<desc id=\"desc\">Two measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>",
+        "<desc id=\"desc\">Measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>",
         "<rect width=\"100%\" height=\"100%\" fill=\"#fbfaf7\"/>",
         '<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" '
         'font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>',
@@ -292,7 +364,11 @@ def render_svg(payload: dict) -> str:
                 f'font-family="Arial, sans-serif" font-size="11" fill="#1f2933">{series["label"]}</text>',
             ])
             legend_x += 188 if "style" not in series["label"] else 286
+        final_iteration = payload["iterations"][-1]["iteration"]
+        tick_interval = max(1, round(final_iteration / 10))
         for point_index, row in enumerate(payload["iterations"]):
+            if row["iteration"] not in (0, final_iteration) and row["iteration"] % tick_interval:
+                continue
             px = plot_x + point_index * (chart_width / max(len(payload["iterations"]) - 1, 1))
             parts.append(
                 f'<text x="{px:.1f}" y="{plot_y + plot_h + 18}" '

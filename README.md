@@ -84,23 +84,24 @@ punctuation cadence, hedging, paragraph rhythm, and sentence starters.
 The chart below is generated from a checked-in fixture, not hand-entered demo
 numbers. `scripts/demo_convergence.py` uses a public-domain excerpt from
 [Project Gutenberg's The Adventures of Sherlock Holmes](https://www.gutenberg.org/ebooks/1661)
-as the benchmark sample, analyzes 21 recursive Baker Street draft snapshots,
-writes `examples/convergence_demo.json`, and renders the two-line charts in
+as the benchmark sample, analyzes at least 50 recursive Baker Street draft snapshots,
+writes `examples/convergence_demo.json`, and renders the chart lines in
 `examples/convergence_demo.svg`. The charts include measured lines for the
 base prompt, direct style prompt, Salix, and the benchmark. The test
-`test_demo_convergence_generates_validated_two_line_charts` validates that
-the final total distance is materially lower and each displayed draft line
-moves closer to its benchmark line.
+`test_demo_convergence_generates_validated_chart_lines` validates that the
+demo shows at least 50 recursive edits, keeps going until Salix aligns with
+the benchmark, and records the completed iteration in the JSON payload.
 
 ![Validated Sherlock Holmes convergence charts](examples/convergence_demo.svg)
 
 | Iteration | Total distance | Benchmark distance | Draft sentence length | Benchmark sentence length |
 | --- | ---: | ---: | ---: | ---: |
-| 0 | 2.1883 | 0.0000 | 5.5000 | 17.2222 |
-| 5 | 1.7410 | 0.0000 | 8.5000 | 17.2222 |
-| 10 | 1.6667 | 0.0000 | 11.5000 | 17.2222 |
-| 15 | 1.5314 | 0.0000 | 14.5000 | 17.2222 |
-| 20 | 1.5081 | 0.0000 | 17.6667 | 17.2222 |
+| 0 | 2.0137 | 0.0000 | 5.4444 | 17.2222 |
+| 10 | 1.5583 | 0.0000 | 7.8889 | 17.2222 |
+| 20 | 1.3967 | 0.0000 | 10.5556 | 17.2222 |
+| 30 | 1.0128 | 0.0000 | 13.1111 | 17.2222 |
+| 40 | 0.7769 | 0.0000 | 15.3333 | 17.2222 |
+| 50 | 0.0000 | 0.0000 | 17.2222 | 17.2222 |
 
 Regenerate the validated demo artifacts:
 

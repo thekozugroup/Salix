@@ -611,7 +611,7 @@ class TestCLI(unittest.TestCase):
             self.assertIn("Convergence by recursive edit", res.stdout)
             self.assertIn("mean_sent_len", res.stdout)
 
-    def test_demo_convergence_generates_validated_two_line_charts(self):
+    def test_demo_convergence_generates_validated_chart_lines(self):
         import subprocess
         with tempfile.TemporaryDirectory() as tmp:
             json_out = Path(tmp) / "demo.json"
@@ -625,7 +625,10 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(res.returncode, 0, res.stderr)
             payload = json.loads(json_out.read_text())
             self.assertTrue(payload["validated"])
-            self.assertGreaterEqual(len(payload["iterations"]), 21)
+            self.assertGreaterEqual(len(payload["iterations"]), 51)
+            self.assertTrue(payload["completion"]["aligned"])
+            self.assertGreaterEqual(payload["completion"]["completed_iteration"], 50)
+            self.assertLessEqual(payload["completion"]["final_total_distance"], 0.05)
             self.assertIn("Sherlock Holmes", payload["source"])
             self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
             distances = [row["total_distance"] for row in payload["iterations"]]
@@ -644,14 +647,16 @@ class TestCLI(unittest.TestCase):
                 target = chart["series"][2]["points"]
                 benchmark = chart["benchmark_series"]
                 self.assertEqual(len(target), len(benchmark))
-                self.assertGreaterEqual(len(target), 21)
+                self.assertGreaterEqual(len(target), 51)
                 initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
                 final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
                 self.assertLess(final_gap, initial_gap)
+                self.assertLessEqual(final_gap, 0.05)
             svg = svg_out.read_text()
             self.assertIn("Validated Sherlock Holmes fixture", svg)
             self.assertIn("Base prompt only", svg)
             self.assertIn("Base prompt plus Salix", svg)
+            self.assertIn(">50</text>", svg)
             self.assertNotIn("<rect x=\"64.0\" y=\"92\"", svg)
             self.assertGreaterEqual(svg.count("<polyline"), 8)
 

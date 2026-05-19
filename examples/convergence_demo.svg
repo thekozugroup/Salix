@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="920" height="610" viewBox="0 0 920 610" role="img" aria-labelledby="title desc">
 <title id="title">Validated Sherlock Holmes Salix convergence</title>
-<desc id="desc">Two measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>
+<desc id="desc">Measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>
 <rect width="100%" height="100%" fill="#fbfaf7"/>
 <text x="40" y="38" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>
 <text x="40" y="64" font-family="Arial, sans-serif" font-size="13" fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>
@@ -8,10 +8,10 @@
 <text x="64" y="126" font-family="Arial, sans-serif" font-size="12" fill="#52616b">weighted Salix distance; lower is closer</text>
 <line x1="64" y1="274" x2="856" y2="274" stroke="#c9d1d9" stroke-width="1"/>
 <line x1="64" y1="136" x2="64" y2="274" stroke="#c9d1d9" stroke-width="1"/>
-<polyline points="64.0,175.6 103.6,175.6 143.2,175.6 182.8,175.6 222.4,175.6 262.0,175.6 301.6,175.6 341.2,175.6 380.8,175.6 420.4,175.6 460.0,175.6 499.6,175.6 539.2,175.6 578.8,175.6 618.4,175.6 658.0,175.6 697.6,175.6 737.2,175.6 776.8,175.6 816.4,175.6 856.0,175.6" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,180.9 103.6,180.9 143.2,180.9 182.8,180.9 222.4,180.9 262.0,180.9 301.6,180.9 341.2,180.9 380.8,180.9 420.4,180.9 460.0,180.9 499.6,180.9 539.2,180.9 578.8,180.9 618.4,180.9 658.0,180.9 697.6,180.9 737.2,180.9 776.8,180.9 816.4,180.9 856.0,180.9" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,168.9 103.6,175.1 143.2,175.1 182.8,181.7 222.4,181.7 262.0,183.7 301.6,183.3 341.2,184.8 380.8,187.6 420.4,187.1 460.0,186.1 499.6,188.0 539.2,188.0 578.8,190.6 618.4,190.6 658.0,190.6 697.6,189.3 737.2,189.3 776.8,190.3 816.4,190.3 856.0,191.4" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,241.1 103.6,241.1 143.2,241.1 182.8,241.1 222.4,241.1 262.0,241.1 301.6,241.1 341.2,241.1 380.8,241.1 420.4,241.1 460.0,241.1 499.6,241.1 539.2,241.1 578.8,241.1 618.4,241.1 658.0,241.1 697.6,241.1 737.2,241.1 776.8,241.1 816.4,241.1 856.0,241.1" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,171.3 79.8,171.3 95.7,171.3 111.5,171.3 127.4,171.3 143.2,171.3 159.0,171.3 174.9,171.3 190.7,171.3 206.6,171.3 222.4,171.3 238.2,171.3 254.1,171.3 269.9,171.3 285.8,171.3 301.6,171.3 317.4,171.3 333.3,171.3 349.1,171.3 365.0,171.3 380.8,171.3 396.6,171.3 412.5,171.3 428.3,171.3 444.2,171.3 460.0,171.3 475.8,171.3 491.7,171.3 507.5,171.3 523.4,171.3 539.2,171.3 555.0,171.3 570.9,171.3 586.7,171.3 602.6,171.3 618.4,171.3 634.2,171.3 650.1,171.3 665.9,171.3 681.8,171.3 697.6,171.3 713.4,171.3 729.3,171.3 745.1,171.3 761.0,171.3 776.8,171.3 792.6,171.3 808.5,171.3 824.3,171.3 840.2,171.3 856.0,171.3" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,176.9 79.8,176.9 95.7,176.9 111.5,176.9 127.4,176.9 143.2,176.9 159.0,176.9 174.9,176.9 190.7,176.9 206.6,176.9 222.4,176.9 238.2,176.9 254.1,176.9 269.9,176.9 285.8,176.9 301.6,176.9 317.4,176.9 333.3,176.9 349.1,176.9 365.0,176.9 380.8,176.9 396.6,176.9 412.5,176.9 428.3,176.9 444.2,176.9 460.0,176.9 475.8,176.9 491.7,176.9 507.5,176.9 523.4,176.9 539.2,176.9 555.0,176.9 570.9,176.9 586.7,176.9 602.6,176.9 618.4,176.9 634.2,176.9 650.1,176.9 665.9,176.9 681.8,176.9 697.6,176.9 713.4,176.9 729.3,176.9 745.1,176.9 761.0,176.9 776.8,176.9 792.6,176.9 808.5,176.9 824.3,176.9 840.2,176.9 856.0,176.9" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,170.4 79.8,171.0 95.7,172.7 111.5,176.8 127.4,179.9 143.2,178.7 159.0,180.6 174.9,186.2 190.7,185.5 206.6,186.0 222.4,186.0 238.2,190.6 254.1,190.2 269.9,190.6 285.8,191.5 301.6,189.8 317.4,192.6 333.3,193.1 349.1,193.3 365.0,193.0 380.8,191.6 396.6,194.0 412.5,194.1 428.3,196.1 444.2,196.4 460.0,199.1 475.8,200.0 491.7,200.2 507.5,201.8 523.4,201.1 539.2,204.8 555.0,203.9 570.9,205.7 586.7,208.8 602.6,209.7 618.4,210.5 634.2,211.0 650.1,211.9 665.9,211.5 681.8,211.7 697.6,212.9 713.4,213.3 729.3,214.9 745.1,214.6 761.0,216.2 776.8,217.2 792.6,219.2 808.5,219.8 824.3,223.5 840.2,227.1 856.0,239.6" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,239.6 79.8,239.6 95.7,239.6 111.5,239.6 127.4,239.6 143.2,239.6 159.0,239.6 174.9,239.6 190.7,239.6 206.6,239.6 222.4,239.6 238.2,239.6 254.1,239.6 269.9,239.6 285.8,239.6 301.6,239.6 317.4,239.6 333.3,239.6 349.1,239.6 365.0,239.6 380.8,239.6 396.6,239.6 412.5,239.6 428.3,239.6 444.2,239.6 460.0,239.6 475.8,239.6 491.7,239.6 507.5,239.6 523.4,239.6 539.2,239.6 555.0,239.6 570.9,239.6 586.7,239.6 602.6,239.6 618.4,239.6 634.2,239.6 650.1,239.6 665.9,239.6 681.8,239.6 697.6,239.6 713.4,239.6 729.3,239.6 745.1,239.6 761.0,239.6 776.8,239.6 792.6,239.6 808.5,239.6 824.3,239.6 840.2,239.6 856.0,239.6" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="64" cy="305" r="4" fill="#64748b"/>
 <text x="74" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt only</text>
 <circle cx="252" cy="305" r="4" fill="#7c3aed"/>
@@ -21,34 +21,24 @@
 <circle cx="726" cy="305" r="4" fill="#b45309"/>
 <text x="736" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Benchmark</text>
 <text x="64.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
-<text x="103.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
-<text x="143.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
-<text x="182.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
-<text x="222.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
-<text x="262.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
-<text x="301.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
-<text x="341.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
-<text x="380.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
-<text x="420.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
-<text x="460.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
-<text x="499.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
-<text x="539.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
-<text x="578.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
-<text x="618.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
-<text x="658.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
-<text x="697.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
-<text x="737.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
-<text x="776.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
-<text x="816.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
-<text x="856.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="143.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="222.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="301.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="380.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="460.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">25</text>
+<text x="539.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">30</text>
+<text x="618.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">35</text>
+<text x="697.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">40</text>
+<text x="776.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">45</text>
+<text x="856.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">50</text>
 <text x="64" y="356" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Sentence length convergence</text>
 <text x="64" y="376" font-family="Arial, sans-serif" font-size="12" fill="#52616b">words per sentence</text>
 <line x1="64" y1="524" x2="856" y2="524" stroke="#c9d1d9" stroke-width="1"/>
 <line x1="64" y1="386" x2="64" y2="524" stroke="#c9d1d9" stroke-width="1"/>
-<polyline points="64.0,477.8 103.6,477.8 143.2,477.8 182.8,477.8 222.4,477.8 262.0,477.8 301.6,477.8 341.2,477.8 380.8,477.8 420.4,477.8 460.0,477.8 499.6,477.8 539.2,477.8 578.8,477.8 618.4,477.8 658.0,477.8 697.6,477.8 737.2,477.8 776.8,477.8 816.4,477.8 856.0,477.8" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,399.4 103.6,399.4 143.2,399.4 182.8,399.4 222.4,399.4 262.0,399.4 301.6,399.4 341.2,399.4 380.8,399.4 420.4,399.4 460.0,399.4 499.6,399.4 539.2,399.4 578.8,399.4 618.4,399.4 658.0,399.4 697.6,399.4 737.2,399.4 776.8,399.4 816.4,399.4 856.0,399.4" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,510.6 103.6,504.3 143.2,504.3 182.8,497.9 222.4,497.9 262.0,491.6 301.6,485.2 341.2,485.2 380.8,478.8 420.4,478.8 460.0,472.5 499.6,466.1 539.2,466.1 578.8,459.8 618.4,459.8 658.0,453.4 697.6,444.9 737.2,444.9 776.8,438.6 816.4,438.6 856.0,433.3" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,436.1 103.6,436.1 143.2,436.1 182.8,436.1 222.4,436.1 262.0,436.1 301.6,436.1 341.2,436.1 380.8,436.1 420.4,436.1 460.0,436.1 499.6,436.1 539.2,436.1 578.8,436.1 618.4,436.1 658.0,436.1 697.6,436.1 737.2,436.1 776.8,436.1 816.4,436.1 856.0,436.1" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,477.5 79.8,477.5 95.7,477.5 111.5,477.5 127.4,477.5 143.2,477.5 159.0,477.5 174.9,477.5 190.7,477.5 206.6,477.5 222.4,477.5 238.2,477.5 254.1,477.5 269.9,477.5 285.8,477.5 301.6,477.5 317.4,477.5 333.3,477.5 349.1,477.5 365.0,477.5 380.8,477.5 396.6,477.5 412.5,477.5 428.3,477.5 444.2,477.5 460.0,477.5 475.8,477.5 491.7,477.5 507.5,477.5 523.4,477.5 539.2,477.5 555.0,477.5 570.9,477.5 586.7,477.5 602.6,477.5 618.4,477.5 634.2,477.5 650.1,477.5 665.9,477.5 681.8,477.5 697.6,477.5 713.4,477.5 729.3,477.5 745.1,477.5 761.0,477.5 776.8,477.5 792.6,477.5 808.5,477.5 824.3,477.5 840.2,477.5 856.0,477.5" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,399.4 79.8,399.4 95.7,399.4 111.5,399.4 127.4,399.4 143.2,399.4 159.0,399.4 174.9,399.4 190.7,399.4 206.6,399.4 222.4,399.4 238.2,399.4 254.1,399.4 269.9,399.4 285.8,399.4 301.6,399.4 317.4,399.4 333.3,399.4 349.1,399.4 365.0,399.4 380.8,399.4 396.6,399.4 412.5,399.4 428.3,399.4 444.2,399.4 460.0,399.4 475.8,399.4 491.7,399.4 507.5,399.4 523.4,399.4 539.2,399.4 555.0,399.4 570.9,399.4 586.7,399.4 602.6,399.4 618.4,399.4 634.2,399.4 650.1,399.4 665.9,399.4 681.8,399.4 697.6,399.4 713.4,399.4 729.3,399.4 745.1,399.4 761.0,399.4 776.8,399.4 792.6,399.4 808.5,399.4 824.3,399.4 840.2,399.4 856.0,399.4" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,510.6 79.8,510.6 95.7,509.9 111.5,503.6 127.4,502.9 143.2,502.9 159.0,502.9 174.9,496.6 190.7,496.6 206.6,495.9 222.4,495.1 238.2,489.5 254.1,489.5 269.9,489.5 285.8,488.8 301.6,483.9 317.4,483.2 333.3,483.2 349.1,482.5 365.0,478.2 380.8,478.2 396.6,477.5 412.5,476.8 428.3,473.3 444.2,472.6 460.0,471.2 475.8,470.5 491.7,469.8 507.5,467.0 523.4,464.2 539.2,462.0 555.0,460.6 570.9,455.7 586.7,453.6 602.6,452.9 618.4,452.9 634.2,450.8 650.1,450.8 665.9,449.4 681.8,448.7 697.6,448.0 713.4,448.0 729.3,447.3 745.1,447.3 761.0,446.5 776.8,445.8 792.6,443.7 808.5,441.6 824.3,439.5 840.2,438.1 856.0,436.0" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,436.0 79.8,436.0 95.7,436.0 111.5,436.0 127.4,436.0 143.2,436.0 159.0,436.0 174.9,436.0 190.7,436.0 206.6,436.0 222.4,436.0 238.2,436.0 254.1,436.0 269.9,436.0 285.8,436.0 301.6,436.0 317.4,436.0 333.3,436.0 349.1,436.0 365.0,436.0 380.8,436.0 396.6,436.0 412.5,436.0 428.3,436.0 444.2,436.0 460.0,436.0 475.8,436.0 491.7,436.0 507.5,436.0 523.4,436.0 539.2,436.0 555.0,436.0 570.9,436.0 586.7,436.0 602.6,436.0 618.4,436.0 634.2,436.0 650.1,436.0 665.9,436.0 681.8,436.0 697.6,436.0 713.4,436.0 729.3,436.0 745.1,436.0 761.0,436.0 776.8,436.0 792.6,436.0 808.5,436.0 824.3,436.0 840.2,436.0 856.0,436.0" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="64" cy="555" r="4" fill="#64748b"/>
 <text x="74" y="559" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt only</text>
 <circle cx="252" cy="555" r="4" fill="#7c3aed"/>
@@ -58,24 +48,14 @@
 <circle cx="726" cy="555" r="4" fill="#b45309"/>
 <text x="736" y="559" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Benchmark</text>
 <text x="64.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
-<text x="103.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
-<text x="143.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
-<text x="182.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
-<text x="222.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
-<text x="262.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
-<text x="301.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
-<text x="341.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
-<text x="380.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
-<text x="420.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
-<text x="460.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
-<text x="499.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
-<text x="539.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
-<text x="578.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
-<text x="618.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
-<text x="658.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
-<text x="697.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
-<text x="737.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
-<text x="776.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
-<text x="816.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
-<text x="856.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="143.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="222.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="301.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="380.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="460.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">25</text>
+<text x="539.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">30</text>
+<text x="618.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">35</text>
+<text x="697.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">40</text>
+<text x="776.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">45</text>
+<text x="856.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">50</text>
 </svg>
