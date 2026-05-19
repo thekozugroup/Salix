@@ -87,10 +87,13 @@ numbers. `scripts/demo_convergence.py` uses a public-domain excerpt from
 as the benchmark sample, analyzes at least 50 recursive Baker Street draft snapshots,
 writes `examples/convergence_demo.json`, and renders the chart lines in
 `examples/convergence_demo.svg`. The charts include measured lines for the
-base prompt, direct style prompt, Salix, and the benchmark. The test
+base prompt, direct style prompt, Salix, and the benchmark across every
+technical scalar and distribution benchmark variable used by the distance
+engine. The test
 `test_demo_convergence_generates_validated_chart_lines` validates that the
 demo shows at least 50 recursive edits, keeps going until Salix aligns with
-the benchmark, and records the completed iteration in the JSON payload.
+the benchmark, and records the completed iteration plus chart count in the
+JSON payload.
 
 ![Validated Sherlock Holmes convergence charts](examples/convergence_demo.svg)
 

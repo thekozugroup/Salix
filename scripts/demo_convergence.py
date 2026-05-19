@@ -9,7 +9,7 @@ from pathlib import Path
 
 import _path  # noqa: F401
 
-from lib.distance import compute_gaps
+from lib.distance import SKIP_FEATURES, compute_gaps
 from lib.stats import analyze, split_sentences
 
 PROMPT = "Write a short Baker Street case note about a missing railway ticket."
@@ -90,13 +90,78 @@ TRACKED_CHARTS = [
         "feature": "total_distance",
         "title": "Overall style distance convergence",
         "unit": "weighted Salix distance; lower is closer",
-    },
-    {
-        "feature": "mean_sent_len",
-        "title": "Sentence length convergence",
-        "unit": "words per sentence",
+        "kind": "distance",
     },
 ]
+
+NGRAM_CHARTS = [
+    ("fw_bigrams", "Function-word bigram distance", "distribution distance; lower is closer"),
+    ("fw_trigrams", "Function-word trigram distance", "distribution distance; lower is closer"),
+    ("sentence_starters", "Sentence starter distance", "distribution distance; lower is closer"),
+    ("char_3grams", "Character 3-gram distance", "cosine distance; lower is closer"),
+    ("char_4grams", "Character 4-gram distance", "cosine distance; lower is closer"),
+    ("pos_bigrams", "POS bigram distance", "distribution distance; lower is closer"),
+    ("pos_trigrams", "POS trigram distance", "distribution distance; lower is closer"),
+    ("mfw_top150", "Burrows Delta MFW distance", "Burrows Delta; lower is closer"),
+]
+
+
+def _is_scalar(value: object) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _title_for_feature(feature: str) -> str:
+    if feature.startswith("fw_") and feature.endswith("_per1k"):
+        word = feature.removeprefix("fw_").removesuffix("_per1k")
+        return f'Function word "{word}" convergence'
+    if feature.startswith("punct_") and feature.endswith("_per1k"):
+        mark = feature.removeprefix("punct_").removesuffix("_per1k").replace("_", " ")
+        return f"Punctuation {mark} convergence"
+    return feature.replace("_per1k", "").replace("_", " ").title() + " convergence"
+
+
+def _unit_for_feature(feature: str) -> str:
+    if feature.endswith("_per1k") or feature.endswith("_rate"):
+        return "occurrences per 1k words"
+    if feature.endswith("_ratio") or feature == "sentiment_polarity":
+        return "ratio"
+    if feature in {"mean_sent_len", "stdev_sent_len", "sent_len_p25",
+                   "sent_len_p50", "sent_len_p75", "sent_len_p90"}:
+        return "words per sentence"
+    if feature in {"mean_paragraph_sents"}:
+        return "sentences per paragraph"
+    if feature in {"mean_paragraph_words"}:
+        return "words per paragraph"
+    return "measured score"
+
+
+def _benchmark_feature_charts(benchmark_stats: dict) -> list[dict]:
+    benchmark_gaps = compute_gaps(benchmark_stats, benchmark_stats)
+    category_by_feature = {
+        gap["feature"]: gap["category"] for gap in benchmark_gaps["all_scalar_gaps"]
+    }
+    scalar_charts = [
+        {
+            "feature": feature,
+            "title": _title_for_feature(feature),
+            "unit": _unit_for_feature(feature),
+            "category": category_by_feature.get(feature, "lexical"),
+            "kind": "scalar",
+        }
+        for feature, value in benchmark_stats.items()
+        if feature not in SKIP_FEATURES and not feature.startswith("_") and _is_scalar(value)
+    ]
+    distribution_charts = [
+        {
+            "feature": feature,
+            "title": title,
+            "unit": unit,
+            "category": "distribution",
+            "kind": "distribution",
+        }
+        for feature, title, unit in NGRAM_CHARTS
+    ]
+    return TRACKED_CHARTS + scalar_charts + distribution_charts
 
 
 def _seed_draft_text(step: int, total_steps: int) -> str:
@@ -151,17 +216,19 @@ def draft_text(step: int, total_steps: int = MIN_RECURSIVE_EDITS) -> str:
 def _aligned(row: dict, benchmark_stats: dict) -> bool:
     if row["total_distance"] > ALIGNMENT_DISTANCE_THRESHOLD:
         return False
-    for chart in TRACKED_CHARTS:
+    for chart in _benchmark_feature_charts(benchmark_stats):
         feature = chart["feature"]
         if feature == "total_distance":
             continue
-        if abs(row[feature] - benchmark_stats[feature]) > ALIGNMENT_FEATURE_THRESHOLD:
+        benchmark_value = 0.0 if chart["kind"] == "distribution" else benchmark_stats[feature]
+        if abs(row[feature] - benchmark_value) > ALIGNMENT_FEATURE_THRESHOLD:
             return False
     return True
 
 
 def build_payload() -> dict:
     benchmark_stats = analyze((BENCHMARK_SAMPLE + "\n") * 4)
+    tracked_charts = _benchmark_feature_charts(benchmark_stats)
     comparison_texts = [
         ("Base prompt only", BASE_PROMPT_OUTPUT),
         ('Prompt plus "write in the style of Sherlock Holmes"', STYLE_PROMPT_OUTPUT),
@@ -186,23 +253,32 @@ def build_payload() -> dict:
             "benchmark_total_distance": 0.0,
             "top_gap": gap["top_gaps"][0]["feature"] if gap["top_gaps"] else "",
         }
-        for chart in TRACKED_CHARTS:
+        for chart in tracked_charts:
             feature = chart["feature"]
             if feature == "total_distance":
                 continue
-            row[feature] = stats[feature]
-            row[f"benchmark_{feature}"] = benchmark_stats[feature]
+            if chart["kind"] == "distribution":
+                row[feature] = gap["ngram_gaps"][feature]["distance"]
+                row[f"benchmark_{feature}"] = 0.0
+            else:
+                row[feature] = stats[feature]
+                row[f"benchmark_{feature}"] = benchmark_stats[feature]
         iterations.append(row)
         if index >= MIN_RECURSIVE_EDITS and _aligned(row, benchmark_stats):
             completed_iteration = index
             break
 
     charts = []
-    for chart in TRACKED_CHARTS:
+    for chart in tracked_charts:
         feature = chart["feature"]
         if feature == "total_distance":
             comparison_values = {
                 label: comparison_gaps[label]["total_distance"] for label, _text in comparison_texts
+            }
+        elif chart["kind"] == "distribution":
+            comparison_values = {
+                label: comparison_gaps[label]["ngram_gaps"][feature]["distance"]
+                for label, _text in comparison_texts
             }
         else:
             comparison_values = {
@@ -253,6 +329,7 @@ def build_payload() -> dict:
             "alignment_total_distance_threshold": ALIGNMENT_DISTANCE_THRESHOLD,
             "alignment_feature_threshold": ALIGNMENT_FEATURE_THRESHOLD,
             "final_total_distance": iterations[-1]["total_distance"],
+            "chart_count": len(charts),
         },
         "iterations": iterations,
         "charts": charts,
@@ -287,7 +364,7 @@ def validate_payload(payload: dict) -> None:
         benchmark = chart["benchmark_series"]
         initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
         final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
-        if not final_gap < initial_gap:
+        if initial_gap > ALIGNMENT_FEATURE_THRESHOLD and not final_gap < initial_gap:
             raise SystemExit(
                 f"{chart['feature']} must converge; gap {initial_gap} -> {final_gap}."
             )

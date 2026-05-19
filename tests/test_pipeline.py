@@ -629,6 +629,7 @@ class TestCLI(unittest.TestCase):
             self.assertTrue(payload["completion"]["aligned"])
             self.assertGreaterEqual(payload["completion"]["completed_iteration"], 50)
             self.assertLessEqual(payload["completion"]["final_total_distance"], 0.05)
+            self.assertGreaterEqual(payload["completion"]["chart_count"], 90)
             self.assertIn("Sherlock Holmes", payload["source"])
             self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
             distances = [row["total_distance"] for row in payload["iterations"]]
@@ -650,15 +651,18 @@ class TestCLI(unittest.TestCase):
                 self.assertGreaterEqual(len(target), 51)
                 initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
                 final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
-                self.assertLess(final_gap, initial_gap)
+                if initial_gap > 0.05:
+                    self.assertLess(final_gap, initial_gap)
                 self.assertLessEqual(final_gap, 0.05)
             svg = svg_out.read_text()
             self.assertIn("Validated Sherlock Holmes fixture", svg)
             self.assertIn("Base prompt only", svg)
             self.assertIn("Base prompt plus Salix", svg)
+            self.assertIn("Function word", svg)
+            self.assertIn("Burrows Delta MFW distance", svg)
             self.assertIn(">50</text>", svg)
             self.assertNotIn("<rect x=\"64.0\" y=\"92\"", svg)
-            self.assertGreaterEqual(svg.count("<polyline"), 8)
+            self.assertGreaterEqual(svg.count("<polyline"), payload["completion"]["chart_count"] * 4)
 
     def test_readme_references_validated_convergence_artifacts(self):
         readme = (ROOT / "README.md").read_text()
