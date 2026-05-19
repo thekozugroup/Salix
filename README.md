@@ -61,12 +61,12 @@ benchmark, target draft, threshold, and whether the edit loop plateaus.
 Prompt:
 
 ```text
-Write a short note explaining why focused work matters.
+Write a short Baker Street case note about a missing railway ticket.
 ```
 
 | Full AI-generated draft | Salix-stylized draft |
 | --- | --- |
-| Focused work matters because it gives people the time and attention needed to do meaningful thinking. In a noisy environment, priorities blur and progress becomes reactive. A focused block creates space to solve the real problem, make better decisions, and finish work with less waste. | Focus is not magic. It is just the condition where the real work finally has enough room to show itself. When the day gets chopped into little pieces, every decision starts arriving half-formed. A quiet block changes that. It lets the important problem sit in front of you long enough to become specific, and once it is specific, it usually becomes smaller. |
+| Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route. | To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case. |
 
 What changed: the example keeps the same intent while moving the prose toward
 the trained profile's sentence length, punctuation cadence, hedging, paragraph
@@ -75,21 +75,24 @@ rhythm, and sentence-starter distribution.
 ## Recursive convergence example
 
 The chart below is generated from a checked-in fixture, not hand-entered demo
-numbers. `scripts/demo_convergence.py` analyzes a benchmark sample and four
-recursive draft snapshots, writes `examples/convergence_demo.json`, and renders
-the two-line charts in `examples/convergence_demo.svg`. The test
+numbers. `scripts/demo_convergence.py` uses a public-domain excerpt from
+[Project Gutenberg's The Adventures of Sherlock Holmes](https://www.gutenberg.org/ebooks/1661)
+as the benchmark sample, analyzes 21 recursive Baker Street draft snapshots,
+writes `examples/convergence_demo.json`, and renders the two-line charts in
+`examples/convergence_demo.svg`. The test
 `test_demo_convergence_generates_validated_two_line_charts` validates that
-total distance decreases and each draft line moves closer to its benchmark
-line.
+the final total distance is materially lower and each displayed draft line
+moves closer to its benchmark line.
 
-![Validated real Salix convergence charts](examples/convergence_demo.svg)
+![Validated Sherlock Holmes convergence charts](examples/convergence_demo.svg)
 
-| Iteration | Total distance | Draft comma rate | Benchmark comma rate | Draft sentence length | Benchmark sentence length |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 0 | 2.1303 | 0.0000 | 128.2051 | 7.7500 | 15.6000 |
-| 1 | 1.7253 | 90.9091 | 128.2051 | 11.0000 | 15.6000 |
-| 2 | 1.4851 | 102.5641 | 128.2051 | 19.5000 | 15.6000 |
-| 3 | 1.3398 | 152.1739 | 128.2051 | 15.3333 | 15.6000 |
+| Iteration | Total distance | Benchmark distance | Draft sentence length | Benchmark sentence length |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 2.1883 | 0.0000 | 5.5000 | 17.2222 |
+| 5 | 1.7410 | 0.0000 | 8.5000 | 17.2222 |
+| 10 | 1.6667 | 0.0000 | 11.5000 | 17.2222 |
+| 15 | 1.5314 | 0.0000 | 14.5000 | 17.2222 |
+| 20 | 1.5081 | 0.0000 | 17.6667 | 17.2222 |
 
 Regenerate the validated demo artifacts:
 

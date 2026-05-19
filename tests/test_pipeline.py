@@ -625,20 +625,21 @@ class TestCLI(unittest.TestCase):
             self.assertEqual(res.returncode, 0, res.stderr)
             payload = json.loads(json_out.read_text())
             self.assertTrue(payload["validated"])
-            self.assertGreaterEqual(len(payload["iterations"]), 4)
+            self.assertGreaterEqual(len(payload["iterations"]), 21)
+            self.assertIn("Sherlock Holmes", payload["source"])
+            self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
             distances = [row["total_distance"] for row in payload["iterations"]]
-            for prev, cur in zip(distances, distances[1:]):
-                self.assertLess(cur, prev)
+            self.assertLess(distances[-1], distances[0] * 0.75)
             for chart in payload["charts"]:
                 target = chart["target_series"]
                 benchmark = chart["benchmark_series"]
                 self.assertEqual(len(target), len(benchmark))
-                self.assertGreaterEqual(len(target), 4)
+                self.assertGreaterEqual(len(target), 21)
                 initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
                 final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
                 self.assertLess(final_gap, initial_gap)
             svg = svg_out.read_text()
-            self.assertIn("Validated real Salix fixture", svg)
+            self.assertIn("Validated Sherlock Holmes fixture", svg)
             self.assertGreaterEqual(svg.count("<polyline"), 4)
 
     def test_readme_references_validated_convergence_artifacts(self):

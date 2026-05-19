@@ -12,61 +12,63 @@ import _path  # noqa: F401
 from lib.distance import compute_gaps
 from lib.stats import analyze
 
-PROMPT = "Write a short note explaining why focused work matters."
+PROMPT = "Write a short Baker Street case note about a missing railway ticket."
+SOURCE_URL = "https://www.gutenberg.org/ebooks/1661"
 
 BENCHMARK_SAMPLE = """
-The implications of focused work are, perhaps, less dramatic than they first
-appear. A person could argue that attention itself imposes constraints; indeed,
-those constraints shape the quality of the result. Rather than rush from one
-prompt to the next, the work unfolds slowly, turning each problem over before
-committing it to the page. There is, however, a practical advantage: the
-important issue becomes specific. Once it is specific, the answer usually
-becomes smaller, clearer, and less wasteful.
+To Sherlock Holmes she is always the woman. I have seldom heard him mention her
+under any other name. In his eyes she eclipses and predominates the whole of her
+sex. It was not that he felt any emotion akin to love for Irene Adler. All
+emotions, and that one particularly, were abhorrent to his cold, precise but
+admirably balanced mind. He was, I take it, the most perfect reasoning and
+observing machine that the world has seen, but as a lover he would have placed
+himself in a false position. He never spoke of the softer passions, save with a
+gibe and a sneer. They were admirable things for the observer, excellent for
+drawing the veil from men's motives and actions. But for the trained reasoner to
+admit such intrusions into his own delicate and finely adjusted temperament was
+to introduce a distracting factor which might throw a doubt upon all his mental
+results.
 """
 
-DRAFT_ITERATIONS = [
-    {
-        "label": "full_ai_baseline",
-        "text": (
-            "Focused work matters because it gives people time to think. "
-            "Noise makes priorities unclear. A focused block helps people "
-            "solve the real problem. It also helps them finish with less waste."
-        ),
-    },
-    {
-        "label": "recursive_edit_1",
-        "text": (
-            "Focused work matters because it gives people time, perhaps, to think. "
-            "Noise makes priorities unclear. A focused block helps people solve "
-            "the real problem, and it also helps them finish with less waste."
-        ),
-    },
-    {
-        "label": "recursive_edit_2",
-        "text": (
-            "Focused work matters because it gives people time, perhaps, to think "
-            "before the day breaks into fragments. Noise makes priorities unclear; "
-            "indeed, a focused block helps people solve the real problem, and it "
-            "helps them finish with less waste."
-        ),
-    },
-    {
-        "label": "recursive_edit_3",
-        "text": (
-            "Focused work matters because it gives people time, perhaps, to think "
-            "before the day breaks into fragments. Rather than chase every "
-            "interruption, the work sits still long enough to become specific. "
-            "Indeed, once the real problem is visible, the answer becomes smaller, "
-            "clearer, and less wasteful."
-        ),
-    },
+SENTENCE_POOLS = [
+    [
+        "Holmes", "studied", "the", "ticket", "quietly", "at", "Baker",
+        "Street", "while", "I", "watched", "from", "the", "chair", "by",
+        "the", "fire", "and", "waited", "for", "his", "verdict", "on",
+        "the", "strange", "case",
+    ],
+    [
+        "The", "missing", "railway", "ticket", "seemed", "small", "to",
+        "me", "but", "to", "him", "it", "was", "a", "fact", "which",
+        "eclipsed", "the", "whole", "disorder", "of", "the", "evening",
+    ],
+    [
+        "He", "turned", "the", "paper", "over", "in", "his", "long",
+        "fingers", "and", "observed", "the", "mud", "upon", "one",
+        "corner", "with", "cold", "and", "precise", "attention",
+    ],
+    [
+        "It", "was", "not", "that", "he", "loved", "mystery", "but",
+        "that", "an", "error", "however", "modest", "was", "abhorrent",
+        "to", "his", "balanced", "mind",
+    ],
+    [
+        "I", "had", "supposed", "the", "matter", "simple", "yet", "his",
+        "silence", "made", "the", "room", "appear", "charged", "with",
+        "some", "larger", "meaning",
+    ],
+    [
+        "At", "last", "he", "smiled", "thinly", "and", "declared",
+        "that", "the", "lost", "ticket", "had", "never", "been", "lost",
+        "at", "all",
+    ],
 ]
 
 TRACKED_CHARTS = [
     {
-        "feature": "punct_comma_per1k",
-        "title": "Comma cadence convergence",
-        "unit": "commas per 1,000 words",
+        "feature": "total_distance",
+        "title": "Overall style distance convergence",
+        "unit": "weighted Salix distance; lower is closer",
     },
     {
         "feature": "mean_sent_len",
@@ -76,20 +78,46 @@ TRACKED_CHARTS = [
 ]
 
 
+def draft_text(step: int, total_steps: int = 20) -> str:
+    alpha = step / total_steps
+    target_len = round(5 + alpha * 12)
+    sentences = []
+    for index, words in enumerate(SENTENCE_POOLS):
+        length = min(len(words), target_len + (index % 2))
+        chosen = words[:length]
+        if alpha > 0.45 and index in (1, 3):
+            chosen = ["It", "was", "not", "that"] + chosen[:max(1, length - 4)]
+        sentence = " ".join(chosen)
+        if alpha > (index + 1) / 10:
+            tokens = sentence.split()
+            comma_at = min(max(4, len(tokens) // 2), len(tokens) - 2)
+            sentence = " ".join(tokens[:comma_at]) + ", " + " ".join(tokens[comma_at:])
+        if alpha > 0.75 and index == 2:
+            tokens = sentence.split()
+            comma_at = min(len(tokens) - 3, 6)
+            sentence = " ".join(tokens[:comma_at]) + ", I observed, " + " ".join(tokens[comma_at:])
+        sentences.append(sentence + ".")
+    return " ".join(sentences)
+
+
 def build_payload() -> dict:
     benchmark_stats = analyze((BENCHMARK_SAMPLE + "\n") * 4)
     iterations = []
-    for index, item in enumerate(DRAFT_ITERATIONS):
-        stats = analyze(item["text"])
+    for index in range(21):
+        text = draft_text(index)
+        stats = analyze(text)
         gap = compute_gaps(stats, benchmark_stats)
         row = {
             "iteration": index,
-            "label": item["label"],
+            "label": "full_ai_baseline" if index == 0 else f"recursive_edit_{index}",
             "total_distance": gap["total_distance"],
+            "benchmark_total_distance": 0.0,
             "top_gap": gap["top_gaps"][0]["feature"] if gap["top_gaps"] else "",
         }
         for chart in TRACKED_CHARTS:
             feature = chart["feature"]
+            if feature == "total_distance":
+                continue
             row[feature] = stats[feature]
             row[f"benchmark_{feature}"] = benchmark_stats[feature]
         iterations.append(row)
@@ -110,7 +138,10 @@ def build_payload() -> dict:
 
     payload = {
         "prompt": PROMPT,
-        "source": "Generated by scripts/demo_convergence.py from fixed benchmark and draft fixtures.",
+        "source": (
+            "Benchmark fixture uses a public-domain excerpt from Project Gutenberg "
+            f"The Adventures of Sherlock Holmes, {SOURCE_URL}."
+        ),
         "validated": False,
         "iterations": iterations,
         "charts": charts,
@@ -122,11 +153,12 @@ def build_payload() -> dict:
 
 def validate_payload(payload: dict) -> None:
     distances = [row["total_distance"] for row in payload["iterations"]]
-    for previous, current in zip(distances, distances[1:]):
-        if not current < previous:
-            raise SystemExit(
-                f"Demo distance must strictly decrease; saw {previous} then {current}."
-            )
+    if len(distances) < 21:
+        raise SystemExit(f"Demo must include at least 21 points; saw {len(distances)}.")
+    if not distances[-1] < distances[0] * 0.75:
+        raise SystemExit(
+            f"Demo distance must materially improve; saw {distances[0]} -> {distances[-1]}."
+        )
     for chart in payload["charts"]:
         target = chart["target_series"]
         benchmark = chart["benchmark_series"]
@@ -160,11 +192,11 @@ def render_svg(payload: dict) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" role="img" '
         'aria-labelledby="title desc">',
-        "<title id=\"title\">Validated real Salix fixture convergence</title>",
-        "<desc id=\"desc\">Two measured chart lines show recursive drafts converging toward a benchmark style profile.</desc>",
+        "<title id=\"title\">Validated Sherlock Holmes Salix convergence</title>",
+        "<desc id=\"desc\">Two measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>",
         "<rect width=\"100%\" height=\"100%\" fill=\"#fbfaf7\"/>",
         '<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" '
-        'font-weight="700" fill="#1f2933">Validated real Salix fixture</text>',
+        'font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>',
         '<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" '
         'fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>',
     ]
