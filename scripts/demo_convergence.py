@@ -253,7 +253,7 @@ def render_svg(payload: dict) -> str:
         '<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" '
         'font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>',
         '<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" '
-        'fill="#52616b">Base, direct style prompt, and Salix are measured as chart lines against the same benchmark.</text>',
+        'fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>',
     ]
     for chart_index, chart in enumerate(payload["charts"]):
         top = 94 + chart_index * panel_height
