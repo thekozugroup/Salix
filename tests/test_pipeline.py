@@ -611,6 +611,42 @@ class TestCLI(unittest.TestCase):
             self.assertIn("Convergence by recursive edit", res.stdout)
             self.assertIn("mean_sent_len", res.stdout)
 
+    def test_demo_convergence_generates_validated_two_line_charts(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as tmp:
+            json_out = Path(tmp) / "demo.json"
+            svg_out = Path(tmp) / "demo.svg"
+            res = subprocess.run(
+                [sys.executable, str(ROOT / "scripts" / "demo_convergence.py"),
+                 "--json-out", str(json_out), "--svg-out", str(svg_out)],
+                capture_output=True, text=True,
+                env=clean_cli_env(PYTHONPATH=str(ROOT)),
+            )
+            self.assertEqual(res.returncode, 0, res.stderr)
+            payload = json.loads(json_out.read_text())
+            self.assertTrue(payload["validated"])
+            self.assertGreaterEqual(len(payload["iterations"]), 4)
+            distances = [row["total_distance"] for row in payload["iterations"]]
+            for prev, cur in zip(distances, distances[1:]):
+                self.assertLess(cur, prev)
+            for chart in payload["charts"]:
+                target = chart["target_series"]
+                benchmark = chart["benchmark_series"]
+                self.assertEqual(len(target), len(benchmark))
+                self.assertGreaterEqual(len(target), 4)
+                initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
+                final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
+                self.assertLess(final_gap, initial_gap)
+            svg = svg_out.read_text()
+            self.assertIn("Validated real Salix fixture", svg)
+            self.assertGreaterEqual(svg.count("<polyline"), 4)
+
+    def test_readme_references_validated_convergence_artifacts(self):
+        readme = (ROOT / "README.md").read_text()
+        self.assertIn("examples/convergence_demo.svg", readme)
+        self.assertIn("examples/convergence_demo.json", readme)
+        self.assertIn("scripts/demo_convergence.py", readme)
+
 
 class TestSimulator(unittest.TestCase):
     """Validate the rewrite-loop mechanics using the rule-based simulator."""

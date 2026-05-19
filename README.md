@@ -74,18 +74,27 @@ rhythm, and sentence-starter distribution.
 
 ## Recursive convergence example
 
-Each edit pass compares the current draft to the benchmark, applies the top
-style hints, and remeasures. The distance should trend down; if it plateaus,
-Salix stops instead of over-editing.
+The chart below is generated from a checked-in fixture, not hand-entered demo
+numbers. `scripts/demo_convergence.py` analyzes a benchmark sample and four
+recursive draft snapshots, writes `examples/convergence_demo.json`, and renders
+the two-line charts in `examples/convergence_demo.svg`. The test
+`test_demo_convergence_generates_validated_two_line_charts` validates that
+total distance decreases and each draft line moves closer to its benchmark
+line.
 
-```text
-iter  distance  top_gap             chart
-----  --------  ------------------  ------------------------
-0     2.184     mean_sent_len       ########################
-1     1.622     punct_comma_per1k   ##################
-2     1.087     hedging_rate        ############
-3     0.641     discourse_rate      #######
-4     0.413     comma_per_sentence  #####
+![Validated real Salix convergence charts](examples/convergence_demo.svg)
+
+| Iteration | Total distance | Draft comma rate | Benchmark comma rate | Draft sentence length | Benchmark sentence length |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | 2.1303 | 0.0000 | 128.2051 | 7.7500 | 15.6000 |
+| 1 | 1.7253 | 90.9091 | 128.2051 | 11.0000 | 15.6000 |
+| 2 | 1.4851 | 102.5641 | 128.2051 | 19.5000 | 15.6000 |
+| 3 | 1.3398 | 152.1739 | 128.2051 | 15.3333 | 15.6000 |
+
+Regenerate the validated demo artifacts:
+
+```bash
+python3 scripts/demo_convergence.py
 ```
 
 Generate chart-ready JSON from your own draft:
@@ -275,6 +284,7 @@ scripts/                  # individual CLI entry points
   compare.py              # stats vs benchmark → gap
   visualize.py            # render JSON as ASCII tables
   simulate_loop.py        # rule-based dry-run of the rewrite loop
+  demo_convergence.py     # generate README convergence JSON/SVG fixtures
   validate.py             # empirical attribution / topic / stability checks
 lib/                      # extraction, comparison, IO
   stats.py                # feature extraction (incl. char-ngrams, MFW, quantiles)
