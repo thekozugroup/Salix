@@ -86,8 +86,8 @@ numbers. `scripts/demo_convergence.py` uses a public-domain excerpt from
 [Project Gutenberg's The Adventures of Sherlock Holmes](https://www.gutenberg.org/ebooks/1661)
 as the benchmark sample, analyzes 21 recursive Baker Street draft snapshots,
 writes `examples/convergence_demo.json`, and renders the two-line charts in
-`examples/convergence_demo.svg`. The SVG also includes the three output
-comparison above the convergence lines. The test
+`examples/convergence_demo.svg`. The charts include measured lines for the
+base prompt, direct style prompt, Salix, and the benchmark. The test
 `test_demo_convergence_generates_validated_two_line_charts` validates that
 the final total distance is materially lower and each displayed draft line
 moves closer to its benchmark line.

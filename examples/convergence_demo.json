@@ -5,15 +5,21 @@
   "comparisons": [
     {
       "label": "Base prompt only",
-      "text": "Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route."
+      "text": "Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route.",
+      "total_distance": 1.9874,
+      "mean_sent_len": 10.6667
     },
     {
       "label": "Prompt plus \"write in the style of Sherlock Holmes\"",
-      "text": "In the dim light of Baker Street, Holmes turned the railway ticket between his long fingers and gave one of those thin smiles which usually meant the matter had already resolved itself in his mind. The missing object, he said, was never truly missing at all."
+      "text": "In the dim light of Baker Street, Holmes turned the railway ticket between his long fingers and gave one of those thin smiles which usually meant the matter had already resolved itself in his mind. The missing object, he said, was never truly missing at all.",
+      "total_distance": 1.8248,
+      "mean_sent_len": 23.0
     },
     {
       "label": "Base prompt plus Salix",
-      "text": "To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case."
+      "text": "To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case.",
+      "total_distance": 1.6811,
+      "mean_sent_len": 24.5
     }
   ],
   "iterations": [
@@ -212,6 +218,364 @@
       "feature": "total_distance",
       "title": "Overall style distance convergence",
       "unit": "weighted Salix distance; lower is closer",
+      "series": [
+        {
+          "label": "Base prompt only",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 1.9874
+            },
+            {
+              "iteration": 1,
+              "value": 1.9874
+            },
+            {
+              "iteration": 2,
+              "value": 1.9874
+            },
+            {
+              "iteration": 3,
+              "value": 1.9874
+            },
+            {
+              "iteration": 4,
+              "value": 1.9874
+            },
+            {
+              "iteration": 5,
+              "value": 1.9874
+            },
+            {
+              "iteration": 6,
+              "value": 1.9874
+            },
+            {
+              "iteration": 7,
+              "value": 1.9874
+            },
+            {
+              "iteration": 8,
+              "value": 1.9874
+            },
+            {
+              "iteration": 9,
+              "value": 1.9874
+            },
+            {
+              "iteration": 10,
+              "value": 1.9874
+            },
+            {
+              "iteration": 11,
+              "value": 1.9874
+            },
+            {
+              "iteration": 12,
+              "value": 1.9874
+            },
+            {
+              "iteration": 13,
+              "value": 1.9874
+            },
+            {
+              "iteration": 14,
+              "value": 1.9874
+            },
+            {
+              "iteration": 15,
+              "value": 1.9874
+            },
+            {
+              "iteration": 16,
+              "value": 1.9874
+            },
+            {
+              "iteration": 17,
+              "value": 1.9874
+            },
+            {
+              "iteration": 18,
+              "value": 1.9874
+            },
+            {
+              "iteration": 19,
+              "value": 1.9874
+            },
+            {
+              "iteration": 20,
+              "value": 1.9874
+            }
+          ]
+        },
+        {
+          "label": "Prompt plus \"write in the style of Sherlock Holmes\"",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 1.8248
+            },
+            {
+              "iteration": 1,
+              "value": 1.8248
+            },
+            {
+              "iteration": 2,
+              "value": 1.8248
+            },
+            {
+              "iteration": 3,
+              "value": 1.8248
+            },
+            {
+              "iteration": 4,
+              "value": 1.8248
+            },
+            {
+              "iteration": 5,
+              "value": 1.8248
+            },
+            {
+              "iteration": 6,
+              "value": 1.8248
+            },
+            {
+              "iteration": 7,
+              "value": 1.8248
+            },
+            {
+              "iteration": 8,
+              "value": 1.8248
+            },
+            {
+              "iteration": 9,
+              "value": 1.8248
+            },
+            {
+              "iteration": 10,
+              "value": 1.8248
+            },
+            {
+              "iteration": 11,
+              "value": 1.8248
+            },
+            {
+              "iteration": 12,
+              "value": 1.8248
+            },
+            {
+              "iteration": 13,
+              "value": 1.8248
+            },
+            {
+              "iteration": 14,
+              "value": 1.8248
+            },
+            {
+              "iteration": 15,
+              "value": 1.8248
+            },
+            {
+              "iteration": 16,
+              "value": 1.8248
+            },
+            {
+              "iteration": 17,
+              "value": 1.8248
+            },
+            {
+              "iteration": 18,
+              "value": 1.8248
+            },
+            {
+              "iteration": 19,
+              "value": 1.8248
+            },
+            {
+              "iteration": 20,
+              "value": 1.8248
+            }
+          ]
+        },
+        {
+          "label": "Base prompt plus Salix",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 2.1883
+            },
+            {
+              "iteration": 1,
+              "value": 2.0029
+            },
+            {
+              "iteration": 2,
+              "value": 2.0029
+            },
+            {
+              "iteration": 3,
+              "value": 1.8026
+            },
+            {
+              "iteration": 4,
+              "value": 1.8026
+            },
+            {
+              "iteration": 5,
+              "value": 1.741
+            },
+            {
+              "iteration": 6,
+              "value": 1.7518
+            },
+            {
+              "iteration": 7,
+              "value": 1.7065
+            },
+            {
+              "iteration": 8,
+              "value": 1.6211
+            },
+            {
+              "iteration": 9,
+              "value": 1.6378
+            },
+            {
+              "iteration": 10,
+              "value": 1.6667
+            },
+            {
+              "iteration": 11,
+              "value": 1.6113
+            },
+            {
+              "iteration": 12,
+              "value": 1.6113
+            },
+            {
+              "iteration": 13,
+              "value": 1.532
+            },
+            {
+              "iteration": 14,
+              "value": 1.532
+            },
+            {
+              "iteration": 15,
+              "value": 1.5314
+            },
+            {
+              "iteration": 16,
+              "value": 1.5695
+            },
+            {
+              "iteration": 17,
+              "value": 1.5695
+            },
+            {
+              "iteration": 18,
+              "value": 1.5409
+            },
+            {
+              "iteration": 19,
+              "value": 1.5409
+            },
+            {
+              "iteration": 20,
+              "value": 1.5081
+            }
+          ]
+        },
+        {
+          "label": "Benchmark",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 0.0
+            },
+            {
+              "iteration": 1,
+              "value": 0.0
+            },
+            {
+              "iteration": 2,
+              "value": 0.0
+            },
+            {
+              "iteration": 3,
+              "value": 0.0
+            },
+            {
+              "iteration": 4,
+              "value": 0.0
+            },
+            {
+              "iteration": 5,
+              "value": 0.0
+            },
+            {
+              "iteration": 6,
+              "value": 0.0
+            },
+            {
+              "iteration": 7,
+              "value": 0.0
+            },
+            {
+              "iteration": 8,
+              "value": 0.0
+            },
+            {
+              "iteration": 9,
+              "value": 0.0
+            },
+            {
+              "iteration": 10,
+              "value": 0.0
+            },
+            {
+              "iteration": 11,
+              "value": 0.0
+            },
+            {
+              "iteration": 12,
+              "value": 0.0
+            },
+            {
+              "iteration": 13,
+              "value": 0.0
+            },
+            {
+              "iteration": 14,
+              "value": 0.0
+            },
+            {
+              "iteration": 15,
+              "value": 0.0
+            },
+            {
+              "iteration": 16,
+              "value": 0.0
+            },
+            {
+              "iteration": 17,
+              "value": 0.0
+            },
+            {
+              "iteration": 18,
+              "value": 0.0
+            },
+            {
+              "iteration": 19,
+              "value": 0.0
+            },
+            {
+              "iteration": 20,
+              "value": 0.0
+            }
+          ]
+        }
+      ],
       "target_series": [
         {
           "iteration": 0,
@@ -389,6 +753,364 @@
       "feature": "mean_sent_len",
       "title": "Sentence length convergence",
       "unit": "words per sentence",
+      "series": [
+        {
+          "label": "Base prompt only",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 10.6667
+            },
+            {
+              "iteration": 1,
+              "value": 10.6667
+            },
+            {
+              "iteration": 2,
+              "value": 10.6667
+            },
+            {
+              "iteration": 3,
+              "value": 10.6667
+            },
+            {
+              "iteration": 4,
+              "value": 10.6667
+            },
+            {
+              "iteration": 5,
+              "value": 10.6667
+            },
+            {
+              "iteration": 6,
+              "value": 10.6667
+            },
+            {
+              "iteration": 7,
+              "value": 10.6667
+            },
+            {
+              "iteration": 8,
+              "value": 10.6667
+            },
+            {
+              "iteration": 9,
+              "value": 10.6667
+            },
+            {
+              "iteration": 10,
+              "value": 10.6667
+            },
+            {
+              "iteration": 11,
+              "value": 10.6667
+            },
+            {
+              "iteration": 12,
+              "value": 10.6667
+            },
+            {
+              "iteration": 13,
+              "value": 10.6667
+            },
+            {
+              "iteration": 14,
+              "value": 10.6667
+            },
+            {
+              "iteration": 15,
+              "value": 10.6667
+            },
+            {
+              "iteration": 16,
+              "value": 10.6667
+            },
+            {
+              "iteration": 17,
+              "value": 10.6667
+            },
+            {
+              "iteration": 18,
+              "value": 10.6667
+            },
+            {
+              "iteration": 19,
+              "value": 10.6667
+            },
+            {
+              "iteration": 20,
+              "value": 10.6667
+            }
+          ]
+        },
+        {
+          "label": "Prompt plus \"write in the style of Sherlock Holmes\"",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 23.0
+            },
+            {
+              "iteration": 1,
+              "value": 23.0
+            },
+            {
+              "iteration": 2,
+              "value": 23.0
+            },
+            {
+              "iteration": 3,
+              "value": 23.0
+            },
+            {
+              "iteration": 4,
+              "value": 23.0
+            },
+            {
+              "iteration": 5,
+              "value": 23.0
+            },
+            {
+              "iteration": 6,
+              "value": 23.0
+            },
+            {
+              "iteration": 7,
+              "value": 23.0
+            },
+            {
+              "iteration": 8,
+              "value": 23.0
+            },
+            {
+              "iteration": 9,
+              "value": 23.0
+            },
+            {
+              "iteration": 10,
+              "value": 23.0
+            },
+            {
+              "iteration": 11,
+              "value": 23.0
+            },
+            {
+              "iteration": 12,
+              "value": 23.0
+            },
+            {
+              "iteration": 13,
+              "value": 23.0
+            },
+            {
+              "iteration": 14,
+              "value": 23.0
+            },
+            {
+              "iteration": 15,
+              "value": 23.0
+            },
+            {
+              "iteration": 16,
+              "value": 23.0
+            },
+            {
+              "iteration": 17,
+              "value": 23.0
+            },
+            {
+              "iteration": 18,
+              "value": 23.0
+            },
+            {
+              "iteration": 19,
+              "value": 23.0
+            },
+            {
+              "iteration": 20,
+              "value": 23.0
+            }
+          ]
+        },
+        {
+          "label": "Base prompt plus Salix",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 5.5
+            },
+            {
+              "iteration": 1,
+              "value": 6.5
+            },
+            {
+              "iteration": 2,
+              "value": 6.5
+            },
+            {
+              "iteration": 3,
+              "value": 7.5
+            },
+            {
+              "iteration": 4,
+              "value": 7.5
+            },
+            {
+              "iteration": 5,
+              "value": 8.5
+            },
+            {
+              "iteration": 6,
+              "value": 9.5
+            },
+            {
+              "iteration": 7,
+              "value": 9.5
+            },
+            {
+              "iteration": 8,
+              "value": 10.5
+            },
+            {
+              "iteration": 9,
+              "value": 10.5
+            },
+            {
+              "iteration": 10,
+              "value": 11.5
+            },
+            {
+              "iteration": 11,
+              "value": 12.5
+            },
+            {
+              "iteration": 12,
+              "value": 12.5
+            },
+            {
+              "iteration": 13,
+              "value": 13.5
+            },
+            {
+              "iteration": 14,
+              "value": 13.5
+            },
+            {
+              "iteration": 15,
+              "value": 14.5
+            },
+            {
+              "iteration": 16,
+              "value": 15.8333
+            },
+            {
+              "iteration": 17,
+              "value": 15.8333
+            },
+            {
+              "iteration": 18,
+              "value": 16.8333
+            },
+            {
+              "iteration": 19,
+              "value": 16.8333
+            },
+            {
+              "iteration": 20,
+              "value": 17.6667
+            }
+          ]
+        },
+        {
+          "label": "Benchmark",
+          "points": [
+            {
+              "iteration": 0,
+              "value": 17.2222
+            },
+            {
+              "iteration": 1,
+              "value": 17.2222
+            },
+            {
+              "iteration": 2,
+              "value": 17.2222
+            },
+            {
+              "iteration": 3,
+              "value": 17.2222
+            },
+            {
+              "iteration": 4,
+              "value": 17.2222
+            },
+            {
+              "iteration": 5,
+              "value": 17.2222
+            },
+            {
+              "iteration": 6,
+              "value": 17.2222
+            },
+            {
+              "iteration": 7,
+              "value": 17.2222
+            },
+            {
+              "iteration": 8,
+              "value": 17.2222
+            },
+            {
+              "iteration": 9,
+              "value": 17.2222
+            },
+            {
+              "iteration": 10,
+              "value": 17.2222
+            },
+            {
+              "iteration": 11,
+              "value": 17.2222
+            },
+            {
+              "iteration": 12,
+              "value": 17.2222
+            },
+            {
+              "iteration": 13,
+              "value": 17.2222
+            },
+            {
+              "iteration": 14,
+              "value": 17.2222
+            },
+            {
+              "iteration": 15,
+              "value": 17.2222
+            },
+            {
+              "iteration": 16,
+              "value": 17.2222
+            },
+            {
+              "iteration": 17,
+              "value": 17.2222
+            },
+            {
+              "iteration": 18,
+              "value": 17.2222
+            },
+            {
+              "iteration": 19,
+              "value": 17.2222
+            },
+            {
+              "iteration": 20,
+              "value": 17.2222
+            }
+          ]
+        }
+      ],
       "target_series": [
         {
           "iteration": 0,

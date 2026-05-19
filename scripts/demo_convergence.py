@@ -119,14 +119,17 @@ def draft_text(step: int, total_steps: int = 20) -> str:
 
 def build_payload() -> dict:
     benchmark_stats = analyze((BENCHMARK_SAMPLE + "\n") * 4)
-    comparisons = [
-        {"label": "Base prompt only", "text": BASE_PROMPT_OUTPUT},
-        {
-            "label": 'Prompt plus "write in the style of Sherlock Holmes"',
-            "text": STYLE_PROMPT_OUTPUT,
-        },
-        {"label": "Base prompt plus Salix", "text": SALIX_OUTPUT},
+    comparison_texts = [
+        ("Base prompt only", BASE_PROMPT_OUTPUT),
+        ('Prompt plus "write in the style of Sherlock Holmes"', STYLE_PROMPT_OUTPUT),
+        ("Base prompt plus Salix", SALIX_OUTPUT),
     ]
+    comparison_stats = {
+        label: analyze(text) for label, text in comparison_texts
+    }
+    comparison_gaps = {
+        label: compute_gaps(stats, benchmark_stats) for label, stats in comparison_stats.items()
+    }
     iterations = []
     for index in range(21):
         text = draft_text(index)
@@ -150,16 +153,34 @@ def build_payload() -> dict:
     charts = []
     for chart in TRACKED_CHARTS:
         feature = chart["feature"]
-        charts.append({
-            **chart,
-            "target_series": [
-                {"iteration": row["iteration"], "value": row[feature]} for row in iterations
-            ],
-            "benchmark_series": [
-                {"iteration": row["iteration"], "value": row[f"benchmark_{feature}"]}
-                for row in iterations
-            ],
-        })
+        if feature == "total_distance":
+            comparison_values = {
+                label: comparison_gaps[label]["total_distance"] for label, _text in comparison_texts
+            }
+        else:
+            comparison_values = {
+                label: comparison_stats[label][feature] for label, _text in comparison_texts
+            }
+        benchmark_points = [
+            {"iteration": row["iteration"], "value": row[f"benchmark_{feature}"]}
+            for row in iterations
+        ]
+        salix_points = [
+            {"iteration": row["iteration"], "value": row[feature]} for row in iterations
+        ]
+        series = [
+            {
+                "label": label,
+                "points": [
+                    {"iteration": row["iteration"], "value": value} for row in iterations
+                ],
+            }
+            for label, value in comparison_values.items()
+        ]
+        series[2]["points"] = salix_points
+        series.append({"label": "Benchmark", "points": benchmark_points})
+        charts.append({**chart, "series": series, "target_series": salix_points,
+                       "benchmark_series": benchmark_points})
 
     payload = {
         "prompt": PROMPT,
@@ -168,7 +189,15 @@ def build_payload() -> dict:
             f"The Adventures of Sherlock Holmes, {SOURCE_URL}."
         ),
         "validated": False,
-        "comparisons": comparisons,
+        "comparisons": [
+            {
+                "label": label,
+                "text": text,
+                "total_distance": comparison_gaps[label]["total_distance"],
+                "mean_sent_len": comparison_stats[label]["mean_sent_len"],
+            }
+            for label, text in comparison_texts
+        ],
         "iterations": iterations,
         "charts": charts,
     }
@@ -186,7 +215,7 @@ def validate_payload(payload: dict) -> None:
             f"Demo distance must materially improve; saw {distances[0]} -> {distances[-1]}."
         )
     for chart in payload["charts"]:
-        target = chart["target_series"]
+        target = chart["series"][2]["points"]
         benchmark = chart["benchmark_series"]
         initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
         final_gap = abs(target[-1]["value"] - benchmark[-1]["value"])
@@ -208,29 +237,12 @@ def _points(series: list[dict], *, x: float, y: float, width: float, height: flo
     return " ".join(out)
 
 
-def _wrap(text: str, width: int = 39) -> list[str]:
-    words = text.split()
-    lines = []
-    current: list[str] = []
-    for word in words:
-        trial = " ".join(current + [word])
-        if len(trial) > width and current:
-            lines.append(" ".join(current))
-            current = [word]
-        else:
-            current.append(word)
-    if current:
-        lines.append(" ".join(current))
-    return lines
-
-
 def render_svg(payload: dict) -> str:
     width = 920
-    comparison_height = 230
     panel_height = 250
     margin = 64
     chart_width = width - margin * 2
-    height = 110 + comparison_height + panel_height * len(payload["charts"])
+    height = 110 + panel_height * len(payload["charts"])
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" role="img" '
@@ -241,43 +253,18 @@ def render_svg(payload: dict) -> str:
         '<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" '
         'font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>',
         '<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" '
-        'fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>',
+        'fill="#52616b">Base, direct style prompt, and Salix are measured as chart lines against the same benchmark.</text>',
     ]
-    card_gap = 16
-    card_width = (chart_width - card_gap * 2) / 3
-    card_top = 92
-    for index, comparison in enumerate(payload["comparisons"]):
-        card_x = margin + index * (card_width + card_gap)
-        parts.extend([
-            f'<rect x="{card_x:.1f}" y="{card_top}" width="{card_width:.1f}" '
-            'height="170" rx="6" fill="#ffffff" stroke="#d8dee4"/>',
-            f'<text x="{card_x + 14:.1f}" y="{card_top + 26}" '
-            'font-family="Arial, sans-serif" font-size="12" font-weight="700" '
-            f'fill="#1f2933">{comparison["label"]}</text>',
-        ])
-        for line_index, line in enumerate(_wrap(comparison["text"])[:7]):
-            parts.append(
-                f'<text x="{card_x + 14:.1f}" y="{card_top + 50 + line_index * 16}" '
-                'font-family="Arial, sans-serif" font-size="11" '
-                f'fill="#52616b">{line}</text>'
-            )
     for chart_index, chart in enumerate(payload["charts"]):
-        top = 94 + comparison_height + chart_index * panel_height
+        top = 94 + chart_index * panel_height
         plot_x = margin
         plot_y = top + 42
         plot_h = 138
-        values = [point["value"] for point in chart["target_series"] + chart["benchmark_series"]]
+        values = [point["value"] for series in chart["series"] for point in series["points"]]
         pad = max((max(values) - min(values)) * 0.12, 1.0)
         min_value = min(values) - pad
         max_value = max(values) + pad
-        target_points = _points(
-            chart["target_series"], x=plot_x, y=plot_y, width=chart_width,
-            height=plot_h, min_value=min_value, max_value=max_value,
-        )
-        benchmark_points = _points(
-            chart["benchmark_series"], x=plot_x, y=plot_y, width=chart_width,
-            height=plot_h, min_value=min_value, max_value=max_value,
-        )
+        colors = ["#64748b", "#7c3aed", "#2563eb", "#b45309"]
         parts.extend([
             f'<text x="{margin}" y="{top + 12}" font-family="Arial, sans-serif" '
             f'font-size="17" font-weight="700" fill="#1f2933">{chart["title"]}</text>',
@@ -287,15 +274,24 @@ def render_svg(payload: dict) -> str:
             f'y2="{plot_y + plot_h}" stroke="#c9d1d9" stroke-width="1"/>',
             f'<line x1="{plot_x}" y1="{plot_y}" x2="{plot_x}" y2="{plot_y + plot_h}" '
             f'stroke="#c9d1d9" stroke-width="1"/>',
-            f'<polyline points="{benchmark_points}" fill="none" stroke="#b45309" '
-            f'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
-            f'<polyline points="{target_points}" fill="none" stroke="#2563eb" '
-            f'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>',
-            f'<text x="{margin}" y="{plot_y + plot_h + 34}" '
-            f'font-family="Arial, sans-serif" font-size="12" fill="#2563eb">Draft line</text>',
-            f'<text x="{margin + 96}" y="{plot_y + plot_h + 34}" '
-            f'font-family="Arial, sans-serif" font-size="12" fill="#b45309">Benchmark line</text>',
         ])
+        for series, color in zip(chart["series"], colors):
+            points = _points(
+                series["points"], x=plot_x, y=plot_y, width=chart_width,
+                height=plot_h, min_value=min_value, max_value=max_value,
+            )
+            parts.append(
+                f'<polyline points="{points}" fill="none" stroke="{color}" '
+                f'stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+            )
+        legend_x = margin
+        for series, color in zip(chart["series"], colors):
+            parts.extend([
+                f'<circle cx="{legend_x}" cy="{plot_y + plot_h + 31}" r="4" fill="{color}"/>',
+                f'<text x="{legend_x + 10}" y="{plot_y + plot_h + 35}" '
+                f'font-family="Arial, sans-serif" font-size="11" fill="#1f2933">{series["label"]}</text>',
+            ])
+            legend_x += 188 if "style" not in series["label"] else 286
         for point_index, row in enumerate(payload["iterations"]):
             px = plot_x + point_index * (chart_width / max(len(payload["iterations"]) - 1, 1))
             parts.append(

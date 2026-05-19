@@ -628,20 +628,20 @@ class TestCLI(unittest.TestCase):
             self.assertGreaterEqual(len(payload["iterations"]), 21)
             self.assertIn("Sherlock Holmes", payload["source"])
             self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
-            self.assertIn("comparisons", payload)
-            comparison_labels = [item["label"] for item in payload["comparisons"]]
-            self.assertEqual(
-                comparison_labels,
-                [
-                    "Base prompt only",
-                    'Prompt plus "write in the style of Sherlock Holmes"',
-                    "Base prompt plus Salix",
-                ],
-            )
             distances = [row["total_distance"] for row in payload["iterations"]]
             self.assertLess(distances[-1], distances[0] * 0.75)
             for chart in payload["charts"]:
-                target = chart["target_series"]
+                series_labels = [series["label"] for series in chart["series"]]
+                self.assertEqual(
+                    series_labels,
+                    [
+                        "Base prompt only",
+                        'Prompt plus "write in the style of Sherlock Holmes"',
+                        "Base prompt plus Salix",
+                        "Benchmark",
+                    ],
+                )
+                target = chart["series"][2]["points"]
                 benchmark = chart["benchmark_series"]
                 self.assertEqual(len(target), len(benchmark))
                 self.assertGreaterEqual(len(target), 21)
@@ -652,7 +652,8 @@ class TestCLI(unittest.TestCase):
             self.assertIn("Validated Sherlock Holmes fixture", svg)
             self.assertIn("Base prompt only", svg)
             self.assertIn("Base prompt plus Salix", svg)
-            self.assertGreaterEqual(svg.count("<polyline"), 4)
+            self.assertNotIn("<rect x=\"64.0\" y=\"92\"", svg)
+            self.assertGreaterEqual(svg.count("<polyline"), 8)
 
     def test_readme_references_validated_convergence_artifacts(self):
         readme = (ROOT / "README.md").read_text()
