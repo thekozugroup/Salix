@@ -14,6 +14,23 @@ from lib.stats import analyze
 
 PROMPT = "Write a short Baker Street case note about a missing railway ticket."
 SOURCE_URL = "https://www.gutenberg.org/ebooks/1661"
+BASE_PROMPT_OUTPUT = (
+    "Holmes received a note about a missing railway ticket. He checked the details, "
+    "compared the times, and realized the ticket had never been stolen. The answer "
+    "was hidden in the passenger's route."
+)
+STYLE_PROMPT_OUTPUT = (
+    "In the dim light of Baker Street, Holmes turned the railway ticket between his "
+    "long fingers and gave one of those thin smiles which usually meant the matter "
+    "had already resolved itself in his mind. The missing object, he said, was never "
+    "truly missing at all."
+)
+SALIX_OUTPUT = (
+    "To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact "
+    "misplaced among larger ones. I have seldom seen him regard so slight a paper with "
+    "such cold attention, for in his eyes the little oblong of pasteboard eclipsed the "
+    "whole confusion of the case."
+)
 
 BENCHMARK_SAMPLE = """
 To Sherlock Holmes she is always the woman. I have seldom heard him mention her
@@ -102,6 +119,14 @@ def draft_text(step: int, total_steps: int = 20) -> str:
 
 def build_payload() -> dict:
     benchmark_stats = analyze((BENCHMARK_SAMPLE + "\n") * 4)
+    comparisons = [
+        {"label": "Base prompt only", "text": BASE_PROMPT_OUTPUT},
+        {
+            "label": 'Prompt plus "write in the style of Sherlock Holmes"',
+            "text": STYLE_PROMPT_OUTPUT,
+        },
+        {"label": "Base prompt plus Salix", "text": SALIX_OUTPUT},
+    ]
     iterations = []
     for index in range(21):
         text = draft_text(index)
@@ -143,6 +168,7 @@ def build_payload() -> dict:
             f"The Adventures of Sherlock Holmes, {SOURCE_URL}."
         ),
         "validated": False,
+        "comparisons": comparisons,
         "iterations": iterations,
         "charts": charts,
     }
@@ -182,12 +208,29 @@ def _points(series: list[dict], *, x: float, y: float, width: float, height: flo
     return " ".join(out)
 
 
+def _wrap(text: str, width: int = 39) -> list[str]:
+    words = text.split()
+    lines = []
+    current: list[str] = []
+    for word in words:
+        trial = " ".join(current + [word])
+        if len(trial) > width and current:
+            lines.append(" ".join(current))
+            current = [word]
+        else:
+            current.append(word)
+    if current:
+        lines.append(" ".join(current))
+    return lines
+
+
 def render_svg(payload: dict) -> str:
     width = 920
+    comparison_height = 230
     panel_height = 250
     margin = 64
     chart_width = width - margin * 2
-    height = 110 + panel_height * len(payload["charts"])
+    height = 110 + comparison_height + panel_height * len(payload["charts"])
     parts = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'viewBox="0 0 {width} {height}" role="img" '
@@ -200,8 +243,26 @@ def render_svg(payload: dict) -> str:
         '<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" '
         'fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>',
     ]
+    card_gap = 16
+    card_width = (chart_width - card_gap * 2) / 3
+    card_top = 92
+    for index, comparison in enumerate(payload["comparisons"]):
+        card_x = margin + index * (card_width + card_gap)
+        parts.extend([
+            f'<rect x="{card_x:.1f}" y="{card_top}" width="{card_width:.1f}" '
+            'height="170" rx="6" fill="#ffffff" stroke="#d8dee4"/>',
+            f'<text x="{card_x + 14:.1f}" y="{card_top + 26}" '
+            'font-family="Arial, sans-serif" font-size="12" font-weight="700" '
+            f'fill="#1f2933">{comparison["label"]}</text>',
+        ])
+        for line_index, line in enumerate(_wrap(comparison["text"])[:7]):
+            parts.append(
+                f'<text x="{card_x + 14:.1f}" y="{card_top + 50 + line_index * 16}" '
+                'font-family="Arial, sans-serif" font-size="11" '
+                f'fill="#52616b">{line}</text>'
+            )
     for chart_index, chart in enumerate(payload["charts"]):
-        top = 94 + chart_index * panel_height
+        top = 94 + comparison_height + chart_index * panel_height
         plot_x = margin
         plot_y = top + 42
         plot_h = 138

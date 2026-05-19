@@ -33,7 +33,9 @@ edit loop plateaus before convergence.
 
 Salix tracks distance after each edit pass. Lower is closer to the selected
 profile. The checked-in demo chart is generated from 21 measured Baker Street
-draft snapshots against a public-domain Sherlock Holmes benchmark fixture:
+draft snapshots against a public-domain Sherlock Holmes benchmark fixture.
+It also shows the base prompt, direct style prompt, and Salix outputs above
+the convergence lines:
 
 ![Validated Sherlock Holmes convergence charts](convergence_demo.svg)
 

@@ -1,65 +1,91 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="610" viewBox="0 0 920 610" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="840" viewBox="0 0 920 840" role="img" aria-labelledby="title desc">
 <title id="title">Validated Sherlock Holmes Salix convergence</title>
 <desc id="desc">Two measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>
 <rect width="100%" height="100%" fill="#fbfaf7"/>
 <text x="40" y="38" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>
 <text x="40" y="64" font-family="Arial, sans-serif" font-size="13" fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>
-<text x="64" y="106" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Overall style distance convergence</text>
-<text x="64" y="126" font-family="Arial, sans-serif" font-size="12" fill="#52616b">weighted Salix distance; lower is closer</text>
-<line x1="64" y1="274" x2="856" y2="274" stroke="#c9d1d9" stroke-width="1"/>
-<line x1="64" y1="136" x2="64" y2="274" stroke="#c9d1d9" stroke-width="1"/>
-<polyline points="64.0,241.1 103.6,241.1 143.2,241.1 182.8,241.1 222.4,241.1 262.0,241.1 301.6,241.1 341.2,241.1 380.8,241.1 420.4,241.1 460.0,241.1 499.6,241.1 539.2,241.1 578.8,241.1 618.4,241.1 658.0,241.1 697.6,241.1 737.2,241.1 776.8,241.1 816.4,241.1 856.0,241.1" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,168.9 103.6,175.1 143.2,175.1 182.8,181.7 222.4,181.7 262.0,183.7 301.6,183.3 341.2,184.8 380.8,187.6 420.4,187.1 460.0,186.1 499.6,188.0 539.2,188.0 578.8,190.6 618.4,190.6 658.0,190.6 697.6,189.3 737.2,189.3 776.8,190.3 816.4,190.3 856.0,191.4" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="64" y="308" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">Draft line</text>
-<text x="160" y="308" font-family="Arial, sans-serif" font-size="12" fill="#b45309">Benchmark line</text>
-<text x="64.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
-<text x="103.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
-<text x="143.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
-<text x="182.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
-<text x="222.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
-<text x="262.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
-<text x="301.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
-<text x="341.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
-<text x="380.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
-<text x="420.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
-<text x="460.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
-<text x="499.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
-<text x="539.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
-<text x="578.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
-<text x="618.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
-<text x="658.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
-<text x="697.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
-<text x="737.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
-<text x="776.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
-<text x="816.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
-<text x="856.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
-<text x="64" y="356" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Sentence length convergence</text>
-<text x="64" y="376" font-family="Arial, sans-serif" font-size="12" fill="#52616b">words per sentence</text>
-<line x1="64" y1="524" x2="856" y2="524" stroke="#c9d1d9" stroke-width="1"/>
-<line x1="64" y1="386" x2="64" y2="524" stroke="#c9d1d9" stroke-width="1"/>
-<polyline points="64.0,403.4 103.6,403.4 143.2,403.4 182.8,403.4 222.4,403.4 262.0,403.4 301.6,403.4 341.2,403.4 380.8,403.4 420.4,403.4 460.0,403.4 499.6,403.4 539.2,403.4 578.8,403.4 618.4,403.4 658.0,403.4 697.6,403.4 737.2,403.4 776.8,403.4 816.4,403.4 856.0,403.4" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,510.6 103.6,501.5 143.2,501.5 182.8,492.4 222.4,492.4 262.0,483.2 301.6,474.1 341.2,474.1 380.8,464.9 420.4,464.9 460.0,455.8 499.6,446.6 539.2,446.6 578.8,437.5 618.4,437.5 658.0,428.3 697.6,416.1 737.2,416.1 776.8,407.0 816.4,407.0 856.0,399.4" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<text x="64" y="558" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">Draft line</text>
-<text x="160" y="558" font-family="Arial, sans-serif" font-size="12" fill="#b45309">Benchmark line</text>
-<text x="64.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
-<text x="103.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
-<text x="143.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
-<text x="182.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
-<text x="222.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
-<text x="262.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
-<text x="301.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
-<text x="341.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
-<text x="380.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
-<text x="420.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
-<text x="460.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
-<text x="499.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
-<text x="539.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
-<text x="578.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
-<text x="618.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
-<text x="658.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
-<text x="697.6" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
-<text x="737.2" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
-<text x="776.8" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
-<text x="816.4" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
-<text x="856.0" y="542" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<rect x="64.0" y="92" width="253.3" height="170" rx="6" fill="#ffffff" stroke="#d8dee4"/>
+<text x="78.0" y="118" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#1f2933">Base prompt only</text>
+<text x="78.0" y="142" font-family="Arial, sans-serif" font-size="11" fill="#52616b">Holmes received a note about a missing</text>
+<text x="78.0" y="158" font-family="Arial, sans-serif" font-size="11" fill="#52616b">railway ticket. He checked the details,</text>
+<text x="78.0" y="174" font-family="Arial, sans-serif" font-size="11" fill="#52616b">compared the times, and realized the</text>
+<text x="78.0" y="190" font-family="Arial, sans-serif" font-size="11" fill="#52616b">ticket had never been stolen. The</text>
+<text x="78.0" y="206" font-family="Arial, sans-serif" font-size="11" fill="#52616b">answer was hidden in the passenger's</text>
+<text x="78.0" y="222" font-family="Arial, sans-serif" font-size="11" fill="#52616b">route.</text>
+<rect x="333.3" y="92" width="253.3" height="170" rx="6" fill="#ffffff" stroke="#d8dee4"/>
+<text x="347.3" y="118" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#1f2933">Prompt plus "write in the style of Sherlock Holmes"</text>
+<text x="347.3" y="142" font-family="Arial, sans-serif" font-size="11" fill="#52616b">In the dim light of Baker Street,</text>
+<text x="347.3" y="158" font-family="Arial, sans-serif" font-size="11" fill="#52616b">Holmes turned the railway ticket</text>
+<text x="347.3" y="174" font-family="Arial, sans-serif" font-size="11" fill="#52616b">between his long fingers and gave one</text>
+<text x="347.3" y="190" font-family="Arial, sans-serif" font-size="11" fill="#52616b">of those thin smiles which usually</text>
+<text x="347.3" y="206" font-family="Arial, sans-serif" font-size="11" fill="#52616b">meant the matter had already resolved</text>
+<text x="347.3" y="222" font-family="Arial, sans-serif" font-size="11" fill="#52616b">itself in his mind. The missing object,</text>
+<text x="347.3" y="238" font-family="Arial, sans-serif" font-size="11" fill="#52616b">he said, was never truly missing at</text>
+<rect x="602.7" y="92" width="253.3" height="170" rx="6" fill="#ffffff" stroke="#d8dee4"/>
+<text x="616.7" y="118" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#1f2933">Base prompt plus Salix</text>
+<text x="616.7" y="142" font-family="Arial, sans-serif" font-size="11" fill="#52616b">To Sherlock Holmes the missing railway</text>
+<text x="616.7" y="158" font-family="Arial, sans-serif" font-size="11" fill="#52616b">ticket was not a trifle, but a small</text>
+<text x="616.7" y="174" font-family="Arial, sans-serif" font-size="11" fill="#52616b">fact misplaced among larger ones. I</text>
+<text x="616.7" y="190" font-family="Arial, sans-serif" font-size="11" fill="#52616b">have seldom seen him regard so slight a</text>
+<text x="616.7" y="206" font-family="Arial, sans-serif" font-size="11" fill="#52616b">paper with such cold attention, for in</text>
+<text x="616.7" y="222" font-family="Arial, sans-serif" font-size="11" fill="#52616b">his eyes the little oblong of</text>
+<text x="616.7" y="238" font-family="Arial, sans-serif" font-size="11" fill="#52616b">pasteboard eclipsed the whole confusion</text>
+<text x="64" y="336" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Overall style distance convergence</text>
+<text x="64" y="356" font-family="Arial, sans-serif" font-size="12" fill="#52616b">weighted Salix distance; lower is closer</text>
+<line x1="64" y1="504" x2="856" y2="504" stroke="#c9d1d9" stroke-width="1"/>
+<line x1="64" y1="366" x2="64" y2="504" stroke="#c9d1d9" stroke-width="1"/>
+<polyline points="64.0,471.1 103.6,471.1 143.2,471.1 182.8,471.1 222.4,471.1 262.0,471.1 301.6,471.1 341.2,471.1 380.8,471.1 420.4,471.1 460.0,471.1 499.6,471.1 539.2,471.1 578.8,471.1 618.4,471.1 658.0,471.1 697.6,471.1 737.2,471.1 776.8,471.1 816.4,471.1 856.0,471.1" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,398.9 103.6,405.1 143.2,405.1 182.8,411.7 222.4,411.7 262.0,413.7 301.6,413.3 341.2,414.8 380.8,417.6 420.4,417.1 460.0,416.1 499.6,418.0 539.2,418.0 578.8,420.6 618.4,420.6 658.0,420.6 697.6,419.3 737.2,419.3 776.8,420.3 816.4,420.3 856.0,421.4" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="538" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">Draft line</text>
+<text x="160" y="538" font-family="Arial, sans-serif" font-size="12" fill="#b45309">Benchmark line</text>
+<text x="64.0" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
+<text x="103.6" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
+<text x="143.2" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
+<text x="182.8" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
+<text x="222.4" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
+<text x="262.0" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="301.6" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
+<text x="341.2" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
+<text x="380.8" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
+<text x="420.4" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
+<text x="460.0" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="499.6" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
+<text x="539.2" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
+<text x="578.8" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
+<text x="618.4" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
+<text x="658.0" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="697.6" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
+<text x="737.2" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
+<text x="776.8" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
+<text x="816.4" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
+<text x="856.0" y="522" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="64" y="586" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Sentence length convergence</text>
+<text x="64" y="606" font-family="Arial, sans-serif" font-size="12" fill="#52616b">words per sentence</text>
+<line x1="64" y1="754" x2="856" y2="754" stroke="#c9d1d9" stroke-width="1"/>
+<line x1="64" y1="616" x2="64" y2="754" stroke="#c9d1d9" stroke-width="1"/>
+<polyline points="64.0,633.4 103.6,633.4 143.2,633.4 182.8,633.4 222.4,633.4 262.0,633.4 301.6,633.4 341.2,633.4 380.8,633.4 420.4,633.4 460.0,633.4 499.6,633.4 539.2,633.4 578.8,633.4 618.4,633.4 658.0,633.4 697.6,633.4 737.2,633.4 776.8,633.4 816.4,633.4 856.0,633.4" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,740.6 103.6,731.5 143.2,731.5 182.8,722.4 222.4,722.4 262.0,713.2 301.6,704.1 341.2,704.1 380.8,694.9 420.4,694.9 460.0,685.8 499.6,676.6 539.2,676.6 578.8,667.5 618.4,667.5 658.0,658.3 697.6,646.1 737.2,646.1 776.8,637.0 816.4,637.0 856.0,629.4" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="64" y="788" font-family="Arial, sans-serif" font-size="12" fill="#2563eb">Draft line</text>
+<text x="160" y="788" font-family="Arial, sans-serif" font-size="12" fill="#b45309">Benchmark line</text>
+<text x="64.0" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
+<text x="103.6" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">1</text>
+<text x="143.2" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">2</text>
+<text x="182.8" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">3</text>
+<text x="222.4" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">4</text>
+<text x="262.0" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="301.6" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">6</text>
+<text x="341.2" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">7</text>
+<text x="380.8" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">8</text>
+<text x="420.4" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">9</text>
+<text x="460.0" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="499.6" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">11</text>
+<text x="539.2" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">12</text>
+<text x="578.8" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">13</text>
+<text x="618.4" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">14</text>
+<text x="658.0" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="697.6" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">16</text>
+<text x="737.2" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">17</text>
+<text x="776.8" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">18</text>
+<text x="816.4" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">19</text>
+<text x="856.0" y="772" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
 </svg>
