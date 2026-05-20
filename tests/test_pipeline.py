@@ -616,9 +616,11 @@ class TestCLI(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             json_out = Path(tmp) / "demo.json"
             svg_out = Path(tmp) / "demo.svg"
+            charts_dir = Path(tmp) / "charts"
             res = subprocess.run(
                 [sys.executable, str(ROOT / "scripts" / "demo_convergence.py"),
-                 "--json-out", str(json_out), "--svg-out", str(svg_out)],
+                 "--json-out", str(json_out), "--svg-out", str(svg_out),
+                 "--charts-dir", str(charts_dir)],
                 capture_output=True, text=True,
                 env=clean_cli_env(PYTHONPATH=str(ROOT)),
             )
@@ -630,6 +632,7 @@ class TestCLI(unittest.TestCase):
             self.assertGreaterEqual(payload["completion"]["completed_iteration"], 50)
             self.assertLessEqual(payload["completion"]["final_total_distance"], 0.05)
             self.assertGreaterEqual(payload["completion"]["chart_count"], 90)
+            self.assertEqual(payload["completion"]["overview_chart_count"], 7)
             self.assertIn("Sherlock Holmes", payload["source"])
             self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
             distances = [row["total_distance"] for row in payload["iterations"]]
@@ -662,12 +665,17 @@ class TestCLI(unittest.TestCase):
             self.assertIn("Burrows Delta MFW distance", svg)
             self.assertIn(">50</text>", svg)
             self.assertNotIn("<rect x=\"64.0\" y=\"92\"", svg)
-            self.assertGreaterEqual(svg.count("<polyline"), payload["completion"]["chart_count"] * 4)
+            self.assertEqual(svg.count("<polyline"), payload["completion"]["overview_chart_count"] * 4)
+            chart_files = sorted(charts_dir.glob("*.svg"))
+            self.assertEqual(len(chart_files), payload["completion"]["chart_count"])
+            self.assertTrue((charts_dir / "README.md").exists())
+            self.assertIn("Burrows Delta MFW distance", (charts_dir / "README.md").read_text())
 
     def test_readme_references_validated_convergence_artifacts(self):
         readme = (ROOT / "README.md").read_text()
         self.assertIn("examples/convergence_demo.svg", readme)
         self.assertIn("examples/convergence_demo.json", readme)
+        self.assertIn("examples/convergence_charts", readme)
         self.assertIn("scripts/demo_convergence.py", readme)
 
     def test_docs_compare_base_style_prompt_and_salix_outputs(self):

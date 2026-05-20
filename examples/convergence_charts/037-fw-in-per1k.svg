@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360" role="img" aria-labelledby="title desc">
+<title id="title">Validated Sherlock Holmes Salix convergence</title>
+<desc id="desc">Measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>
+<rect width="100%" height="100%" fill="#fbfaf7"/>
+<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>
+<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>
+<text x="64" y="106" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Function word "in" convergence</text>
+<text x="64" y="126" font-family="Arial, sans-serif" font-size="12" fill="#52616b">occurrences per 1k words</text>
+<line x1="64" y1="274" x2="856" y2="274" stroke="#c9d1d9" stroke-width="1"/>
+<line x1="64" y1="136" x2="64" y2="274" stroke="#c9d1d9" stroke-width="1"/>
+<polyline points="64.0,180.7 79.8,180.7 95.7,180.7 111.5,180.7 127.4,180.7 143.2,180.7 159.0,180.7 174.9,180.7 190.7,180.7 206.6,180.7 222.4,180.7 238.2,180.7 254.1,180.7 269.9,180.7 285.8,180.7 301.6,180.7 317.4,180.7 333.3,180.7 349.1,180.7 365.0,180.7 380.8,180.7 396.6,180.7 412.5,180.7 428.3,180.7 444.2,180.7 460.0,180.7 475.8,180.7 491.7,180.7 507.5,180.7 523.4,180.7 539.2,180.7 555.0,180.7 570.9,180.7 586.7,180.7 602.6,180.7 618.4,180.7 634.2,180.7 650.1,180.7 665.9,180.7 681.8,180.7 697.6,180.7 713.4,180.7 729.3,180.7 745.1,180.7 761.0,180.7 776.8,180.7 792.6,180.7 808.5,180.7 824.3,180.7 840.2,180.7 856.0,180.7" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,149.4 79.8,149.4 95.7,149.4 111.5,149.4 127.4,149.4 143.2,149.4 159.0,149.4 174.9,149.4 190.7,149.4 206.6,149.4 222.4,149.4 238.2,149.4 254.1,149.4 269.9,149.4 285.8,149.4 301.6,149.4 317.4,149.4 333.3,149.4 349.1,149.4 365.0,149.4 380.8,149.4 396.6,149.4 412.5,149.4 428.3,149.4 444.2,149.4 460.0,149.4 475.8,149.4 491.7,149.4 507.5,149.4 523.4,149.4 539.2,149.4 555.0,149.4 570.9,149.4 586.7,149.4 602.6,149.4 618.4,149.4 634.2,149.4 650.1,149.4 665.9,149.4 681.8,149.4 697.6,149.4 713.4,149.4 729.3,149.4 745.1,149.4 761.0,149.4 776.8,149.4 792.6,149.4 808.5,149.4 824.3,149.4 840.2,149.4 856.0,149.4" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,260.6 79.8,260.6 95.7,260.6 111.5,173.9 127.4,175.3 143.2,175.3 159.0,175.3 174.9,186.5 190.7,186.5 206.6,187.5 222.4,188.5 238.2,195.8 254.1,163.4 269.9,195.8 285.8,196.7 301.6,201.8 317.4,202.5 333.3,202.5 349.1,203.1 365.0,206.8 380.8,206.8 396.6,207.3 412.5,207.9 428.3,210.5 444.2,210.9 460.0,211.9 475.8,212.3 491.7,212.8 507.5,214.5 523.4,216.1 539.2,217.3 555.0,218.0 570.9,220.3 586.7,201.6 602.6,202.0 618.4,202.0 634.2,203.3 650.1,203.3 665.9,204.2 681.8,204.6 697.6,205.0 713.4,205.0 729.3,205.4 745.1,205.4 761.0,205.8 776.8,206.2 792.6,207.3 808.5,208.4 824.3,209.5 840.2,227.0 856.0,227.6" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="64.0,227.6 79.8,227.6 95.7,227.6 111.5,227.6 127.4,227.6 143.2,227.6 159.0,227.6 174.9,227.6 190.7,227.6 206.6,227.6 222.4,227.6 238.2,227.6 254.1,227.6 269.9,227.6 285.8,227.6 301.6,227.6 317.4,227.6 333.3,227.6 349.1,227.6 365.0,227.6 380.8,227.6 396.6,227.6 412.5,227.6 428.3,227.6 444.2,227.6 460.0,227.6 475.8,227.6 491.7,227.6 507.5,227.6 523.4,227.6 539.2,227.6 555.0,227.6 570.9,227.6 586.7,227.6 602.6,227.6 618.4,227.6 634.2,227.6 650.1,227.6 665.9,227.6 681.8,227.6 697.6,227.6 713.4,227.6 729.3,227.6 745.1,227.6 761.0,227.6 776.8,227.6 792.6,227.6 808.5,227.6 824.3,227.6 840.2,227.6 856.0,227.6" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="64" cy="305" r="4" fill="#64748b"/>
+<text x="74" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt only</text>
+<circle cx="252" cy="305" r="4" fill="#7c3aed"/>
+<text x="262" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Prompt plus "write in the style of Sherlock Holmes"</text>
+<circle cx="538" cy="305" r="4" fill="#2563eb"/>
+<text x="548" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt plus Salix</text>
+<circle cx="726" cy="305" r="4" fill="#b45309"/>
+<text x="736" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Benchmark</text>
+<text x="64.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
+<text x="143.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="222.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="301.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="380.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="460.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">25</text>
+<text x="539.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">30</text>
+<text x="618.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">35</text>
+<text x="697.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">40</text>
+<text x="776.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">45</text>
+<text x="856.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">50</text>
+</svg>

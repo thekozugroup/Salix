@@ -30,7 +30,8 @@
     "alignment_total_distance_threshold": 0.05,
     "alignment_feature_threshold": 0.05,
     "final_total_distance": 0.0,
-    "chart_count": 100
+    "chart_count": 100,
+    "overview_chart_count": 7
   },
   "iterations": [
     {
@@ -11748,7 +11749,7 @@
     },
     {
       "feature": "ttr",
-      "title": "Ttr convergence",
+      "title": "TTR convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -13005,7 +13006,7 @@
     },
     {
       "feature": "mean_word_len",
-      "title": "Mean Word Len convergence",
+      "title": "Mean word length convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -15519,7 +15520,7 @@
     },
     {
       "feature": "mtld",
-      "title": "Mtld convergence",
+      "title": "MTLD convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -16776,7 +16777,7 @@
     },
     {
       "feature": "yule_k",
-      "title": "Yule K convergence",
+      "title": "Yule's K convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -18033,7 +18034,7 @@
     },
     {
       "feature": "honore_r",
-      "title": "Honore R convergence",
+      "title": "Honore's R convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -19290,7 +19291,7 @@
     },
     {
       "feature": "simpson_d",
-      "title": "Simpson D convergence",
+      "title": "Simpson's D convergence",
       "unit": "measured score",
       "category": "lexical",
       "kind": "scalar",
@@ -20547,7 +20548,7 @@
     },
     {
       "feature": "mean_sent_len",
-      "title": "Mean Sent Len convergence",
+      "title": "Sentence length convergence",
       "unit": "words per sentence",
       "category": "sentence_shape",
       "kind": "scalar",
@@ -21804,7 +21805,7 @@
     },
     {
       "feature": "stdev_sent_len",
-      "title": "Stdev Sent Len convergence",
+      "title": "Sentence length variation convergence",
       "unit": "words per sentence",
       "category": "sentence_shape",
       "kind": "scalar",
@@ -25575,7 +25576,7 @@
     },
     {
       "feature": "comma_per_sentence",
-      "title": "Comma Per Sentence convergence",
+      "title": "Comma cadence convergence",
       "unit": "measured score",
       "category": "sentence_shape",
       "kind": "scalar",
@@ -45687,7 +45688,7 @@
     },
     {
       "feature": "flesch_kincaid_grade",
-      "title": "Flesch Kincaid Grade convergence",
+      "title": "Flesch-Kincaid grade convergence",
       "unit": "measured score",
       "category": "readability",
       "kind": "scalar",
@@ -48201,7 +48202,7 @@
     },
     {
       "feature": "ari",
-      "title": "Ari convergence",
+      "title": "ARI convergence",
       "unit": "measured score",
       "category": "readability",
       "kind": "scalar",
@@ -113565,7 +113566,7 @@
     },
     {
       "feature": "formality_f_score",
-      "title": "Formality F Score convergence",
+      "title": "Formality F-score convergence",
       "unit": "measured score",
       "category": "tone",
       "kind": "scalar",

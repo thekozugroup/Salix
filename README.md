@@ -85,11 +85,11 @@ The chart below is generated from a checked-in fixture, not hand-entered demo
 numbers. `scripts/demo_convergence.py` uses a public-domain excerpt from
 [Project Gutenberg's The Adventures of Sherlock Holmes](https://www.gutenberg.org/ebooks/1661)
 as the benchmark sample, analyzes at least 50 recursive Baker Street draft snapshots,
-writes `examples/convergence_demo.json`, and renders the chart lines in
-`examples/convergence_demo.svg`. The charts include measured lines for the
-base prompt, direct style prompt, Salix, and the benchmark across every
-technical scalar and distribution benchmark variable used by the distance
-engine. The test
+writes `examples/convergence_demo.json`, and renders the most important chart
+lines in `examples/convergence_demo.svg`. The overview shows total distance,
+sentence length, lexical diversity, comma cadence, formality, a representative
+function-word rate, and Burrows Delta. The complete per-variable chart set
+lives in `examples/convergence_charts/`. The test
 `test_demo_convergence_generates_validated_chart_lines` validates that the
 demo shows at least 50 recursive edits, keeps going until Salix aligns with
 the benchmark, and records the completed iteration plus chart count in the
