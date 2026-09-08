@@ -342,3 +342,31 @@ Tests cover tokenization, segmentation (including lowercase prose, decimals,
 abbreviations), lexical metrics, formality contrast, aggregation, scoped
 profile storage, distance properties, edit-hint coverage, CLI dispatch, and
 the monotonic-distance invariant of the rewrite loop.
+
+
+## Social references and portable plugins
+
+Salix now supports source-linked social-post records, short-post ingestion,
+author-isolated provisional profiles, metrics-only imports from actual Salix
+measurements, chart-ready descriptive comparisons, and draft exclusions with
+recorded factual/approval state. The host LLM writes; Salix is not a fine-tuned
+model or an engagement predictor. See [the input schema and commands](references/social.md).
+
+```sh
+./salix social ingest records.json --out-dir references-library --metrics-only
+./salix social profile references-library --out profiles.json
+./salix social compare profiles.json --out chart-data.json
+./salix social review draft.md --policy review-policy.json --out review.json
+python3 scripts/build_skill_bundle.py --all
+```
+
+The existing `dist/Salix.skill` remains a self-contained Claude-uploadable skill.
+`--all` also creates native `dist/codex/salix` and `dist/claude/salix` plugins
+(with bundled runtimes under `skills/salix`) plus `Salix.codex-plugin.zip` and
+`Salix.claude-plugin.zip`. The Codex plugin includes `.codex-plugin/plugin.json`;
+the Claude plugin includes `.claude-plugin/plugin.json`. Build outputs use an
+explicit file allowlist and exclude samples, profiles, local captures, tests and
+private material. `./install.sh` still installs linked skills for either or both
+hosts. These are portable build artifacts; building does not install plugins or
+change a marketplace. Run commands from the bundled skill directory, or use its
+absolute executable path from another workspace.

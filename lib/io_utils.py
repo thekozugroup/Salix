@@ -89,6 +89,8 @@ def load_text(path: Path) -> str:
     """Load and clean a single text file."""
     p = Path(path)
     raw = _read_with_fallback(p)
+    if "<!-- salix-social-reference:v1 -->" in raw:
+        raise ValueError("Social reference metadata is not prose; use salix social profile on paired JSON records.")
     cleaned = clean_text(raw)
     if not cleaned.strip():
         warnings.warn(f"{p} cleaned to empty — likely all code/markdown/URLs", stacklevel=2)

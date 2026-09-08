@@ -1,0 +1,26 @@
+{
+  "name": "salix",
+  "version": "0.9.0",
+  "description": "Source-aware social references and personal writing-style measurements.",
+  "author": {
+    "name": "thekozugroup"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Salix",
+    "shortDescription": "Measure writing style and review source-aware social drafts.",
+    "longDescription": "Build isolated author profiles from original prose, compare descriptive metrics, and guide host-model writing with explicit factual review.",
+    "developerName": "thekozugroup",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Build a source-linked social style profile.",
+      "Review this draft against my writing references."
+    ]
+  },
+  "repository": "https://github.com/thekozugroup/Salix",
+  "license": "MIT"
+}

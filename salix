@@ -468,6 +468,8 @@ def build_parser() -> argparse.ArgumentParser:
     _add_scope_flags(p_sim)
     p_sim.set_defaults(fn=cmd_simulate)
 
+    from lib.social import add_parser
+    add_parser(sub)
     return p
 
 

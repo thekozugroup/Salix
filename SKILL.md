@@ -1,11 +1,11 @@
 ---
 name: salix
-description: Use when the user wants to rewrite a document in their personal writing style, ingest writing samples to build a style fingerprint, or analyze stylistic features of text. Triggers on phrases like "make this sound like me", "match my style", "rewrite in my voice", "/salix", "build my style profile", "ingest my writing", or any request to align a draft with a previously captured author benchmark. Iteratively edits a target document until its measured linguistic features converge to the saved benchmark.
+description: Measure writing style, build author-isolated reference profiles from original documents or social posts, and guide host-model rewrites and factual draft review. Use for voice matching, source-linked social reference libraries, style comparison, or draft review against captured author benchmarks.
 ---
 
 # Salix — Personal Writing Style Replicator
 
-Salix captures an author's stylistic fingerprint from prior writing samples, then iteratively rewrites target documents until they statistically match that fingerprint. Style is measured topic-blind: content words are filtered out so the benchmark reflects *how* the author writes, not *what* they write about.
+Salix captures an author's stylistic fingerprint from prior writing samples, then iteratively rewrites target documents until they statistically match that fingerprint. Function-word features reduce topic sensitivity; character n-grams and other features can still reflect vocabulary and topic. Treat comparisons as descriptive guidance.
 
 ## When to use
 
@@ -16,6 +16,20 @@ Invoke Salix when the user asks for any of:
 - Comparing a draft against a benchmark ("how far off is this?")
 
 If the user provides a draft *and* references their style without a benchmark file present, run the ingest flow first.
+
+## Social posts and source-linked references
+
+For short social posts, external-source research, metrics-only capture, author comparisons,
+or draft exclusions/approval checks, read [references/social.md](references/social.md)
+and use `./salix social`. Keep metadata, excerpts, researcher summaries, comments and
+shared repost bodies out of author prose. Measure only attributable complete originals
+(or explicitly isolated original repost captions). Profiles stay author-isolated and
+show sample/word sufficiency; small corpora are useful provisional references.
+
+The host LLM writes content. Measurements guide broad characteristics; they are not a
+fine-tuned model, an engagement predictor, or a guarantee of author identity. Preserve
+the user's speaker and facts. Do not treat another author's claims as facts about the
+user. Publication and factual approval are distinct from stylistic similarity.
 
 ## Architecture
 
@@ -137,7 +151,7 @@ After the loop:
 - **Profile scope** — `--scope auto|global|project|install` chooses where
   benchmarks and samples live. Use `--home PATH` for a custom store.
 - **Feature weights** — `lib/distance.py:FEATURE_WEIGHTS`. Punctuation and function-word distributions weighted highest; readability lowest (it correlates with the others).
-- **Topic filter** — `lib/function_words.py:FUNCTION_WORDS` is the closed-class allowlist. Vocabulary statistics only consider words in this set, making the fingerprint topic-blind.
+- **Topic filter** — `lib/function_words.py:FUNCTION_WORDS` is the closed-class allowlist. Function-word features use this set to reduce topic sensitivity; character n-grams and other metrics can still reflect topic.
 
 ## Validation
 
@@ -148,7 +162,7 @@ The metric has been empirically validated against synthetic multi-author corpora
 
 ## Anti-patterns
 
-- **Do not** ingest a single document as the benchmark — the fingerprint will overfit to one piece's topic and rhythm.
+- **Do not** treat a single document as a stable benchmark — the fingerprint will overfit to one piece's topic and rhythm.
 - **Do not** keep iterating past distance plateau — late iterations introduce style artifacts without improving match.
 - **Do not** rewrite content words to chase vocabulary stats. Salix's vocab metrics intentionally ignore content terms.
 - **Do not** ship edits that change meaning. Style match is worthless if facts shift.
