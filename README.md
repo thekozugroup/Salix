@@ -45,8 +45,8 @@ host settings, or enable hooks. Ask me for writing samples to build a profile.
 
 ### Claude App
 
-Download **Salix.zip** or **Salix.skill** from
-[Releases](https://github.com/thekozugroup/Salix/releases).
+Download [**Salix.zip**](https://github.com/thekozugroup/Salix/releases/latest/download/Salix.zip)
+or [**Salix.skill**](https://github.com/thekozugroup/Salix/releases/latest/download/Salix.skill).
 Upload through Claude's Skills settings and enable it. Prefer `.zip` if the
 file picker rejects `.skill`; both contain the same skill folder.
 Release assets are published on tagged releases, not every main-branch update.
@@ -85,34 +85,49 @@ Direct CLI setup from a checkout:
 
 ## Examples
 
-Prompt: **Write a short Baker Street case note about a missing railway ticket.**
+Prompt: **Write a 400-550-word Watson case note about Clara Bell's missing return
+ticket, her 6:40 Euston train, and a dry folded-newspaper clue. No theft or culprit.**
 
-These are static illustrations, not recorded model outputs or a product test.
+These are opening paragraphs from real outputs in one recorded Codex experiment.
+All conditions use `gpt-5.6-sol` with low reasoning effort. The third condition
+uses a Salix measurement-feedback harness, not automatic host skill selection.
 
-| Base prompt only | Prompt plus "write in the style of Sherlock Holmes" | Base prompt plus Salix |
+| Base prompt only | Base + "write in the style of Arthur Conan Doyle's Sherlock Holmes stories" | Base + Salix feedback |
 | --- | --- | --- |
-| Holmes received a note about a missing railway ticket. He checked the details, compared the times, and realized the ticket had never been stolen. The answer was hidden in the passenger's route. | In the dim light of Baker Street, Holmes turned the railway ticket between his long fingers and gave one of those thin smiles which usually meant the matter had already resolved itself in his mind. The missing object, he said, was never truly missing at all. | To Sherlock Holmes the missing railway ticket was not a trifle, but a small fact misplaced among larger ones. I have seldom seen him regard so slight a paper with such cold attention, for in his eyes the little oblong of pasteboard eclipsed the whole confusion of the case. |
+| It was shortly after five o’clock on a wet November evening when Miss Clara Bell was shown into our sitting-room at Baker Street. The rain beat steadily against the panes, and our visitor, though protected by a dark cloak, carried upon her hat and shoulders the unmistakable traces of the storm. | It was upon a wet evening in October, when the rain beat fitfully against the windows of our sitting-room in Baker Street, that Mrs Hudson ushered in a young lady whose agitation was scarcely concealed by her composed manner. She gave her name as Clara Bell, and from the drops upon her cloak and the damp curls at her temples it was plain that she had come to us through the storm. | Among the minor problems submitted to Sherlock Holmes, I recall none which better displayed the value of exact observation than the curious affair of Miss Clara Bell’s return railway ticket. No crime had been committed, no dishonest hand was concerned, and the whole mystery might have passed as a commonplace misadventure. Yet one small circumstance, visible to us all, led Holmes directly to the truth. |
 
-### Metric Fixture
+[Full generated texts and exact prompt](examples/live_comparison.md).
 
-The overview below shows seven important measurements over **50 constructed
-steps**, with the three examples as static comparison lines. Values are measured
-from stored texts, not invented. **This is not evidence of an AI rewrite
-converging:** the changing fixture copies more benchmark text at each step and
-ends with the exact training excerpt. Zero distance therefore proves only the
-metric's self-comparison check. It does not prove writing quality or voice fidelity.
+### Recorded Measurements
 
-![Sherlock Holmes metric fixture, not an AI convergence result](examples/convergence_demo.svg)
+**50 actual rewrite attempts; 51 measured states; two retained improvements.**
+Three public-domain Doyle passages train the profile; three separate passages
+supply held-out scores. Grey shows every candidate, including rejected drafts.
+Blue retains an eligible training-score improvement. Both prompt baselines and
+the author-profile reference remain visible in every graph.
 
-[All variable charts](examples/convergence_charts/README.md) |
-[Texts, hashes, and measurement data](examples/convergence_demo.json) |
-[Method and limitations](examples/README.md)
+| Condition | Training Distance | Held-Out Distance |
+| --- | ---: | ---: |
+| Base prompt only | 2.4416 | 1.1912 |
+| Base + explicit style prompt | 2.3801 | 1.1403 |
+| Base + Salix feedback, retained draft | 2.1400 | 1.1057 |
 
-The excerpt is attributed to
-[The Adventures of Sherlock Holmes](https://www.gutenberg.org/ebooks/1661).
-Regenerate with `python3 scripts/demo_convergence.py`. A real held-out,
-meaning-preserving model rewrite experiment remains necessary before making
-product convergence claims.
+Lower is closer, **not a percentage voice match**. This run improves then
+plateaus; it does not achieve full benchmark alignment or prove better prose.
+Watson/Baker Street already cue Doyle, and narrative training excerpts differ
+from dialogue-heavy case notes. Mechanical checks are not semantic validation.
+Independent reading found preserved fixed facts but overconfident causal reasoning.
+
+![Recorded Sherlock Holmes rewrite measurements over 50 actual attempts](examples/live_convergence.svg)
+
+[All 101 variable charts](examples/live_convergence_charts/README.md) |
+[Exact texts, prompts, hashes, and data](examples/live_convergence.json) |
+[Method, checks, and limitations](docs/BENCHMARK.md)
+
+Verify offline with
+`python3 scripts/live_convergence.py --validate examples/live_convergence.json`.
+The earlier benchmark-copy fixture remains a labeled
+[diagnostic archive](examples/README.md), not AI convergence evidence.
 
 ## Social References
 
@@ -144,6 +159,7 @@ feature details, validation limits, and reproducible checks.
 - [Installation and native plugins](docs/INSTALL.md)
 - [Profiles, rewrites, and troubleshooting](docs/USAGE.md)
 - [Metrics, tests, and performance](docs/TECHNICAL.md)
+- [Recorded writing experiment](docs/BENCHMARK.md)
 - [Examples and chart archive](examples/README.md)
 - [Changelog](CHANGELOG.md)
 

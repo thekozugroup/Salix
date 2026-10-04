@@ -83,6 +83,11 @@ with environment overrides, and bind `PROFILE_HOME` to it.
 
 Use the user's own representative writing in `.txt` or `.md` files. Prefer
 multiple independent pieces with similar audience/register to the target.
+Match the format too: long narrative openings are weak evidence for a voice
+used mostly in short dialogue, emails, or reports. Explain a format mismatch
+before treating its gaps as editing goals. The function-word, tone, syllable,
+and grammatical heuristics are English-focused; do not claim the same accuracy
+for other languages.
 Around 3,000 total cleaned words, or 10,000+ when available, is a collection
 guideline, not a validated sufficiency threshold. Ingest defaults to skipping
 each file below 300 cleaned words. Report limited evidence rather than promising
@@ -143,7 +148,7 @@ Choose only the requested action and scope. Do not enable hooks or modify host
 settings without an explicit setup request. No hook automatically rewrites a
 document, and hook output is not an edit request. Check effective configuration
 when environment and saved settings disagree. `hooks status` reports saved
-configuration, not necessarily the environment-overridden effective state.
+`hooks_enabled` and environment-aware `effective_enabled`; inspect both.
 
 ## Privacy
 

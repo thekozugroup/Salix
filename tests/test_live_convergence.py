@@ -22,7 +22,7 @@ from live_convergence import (  # noqa: E402
     select_corpus,
     validate_payload,
 )
-from render_live_convergence import prepare_charts  # noqa: E402
+from render_live_convergence import prepare_charts, render_svg  # noqa: E402
 
 from lib import stats as stats_module  # noqa: E402
 
@@ -170,6 +170,15 @@ class RecordedExperimentTests(unittest.TestCase):
         self.assertTrue(all(len(line["values"]) == attempts + 1 for chart in charts for line in chart["series"]))
         self.assertTrue(all({line["id"] for line in chart["series"]} ==
                             {"candidate", "retained", "base", "style", "benchmark"} for chart in charts))
+
+    def test_committed_overview_matches_recorded_data(self):
+        charts, attempts, subtitle = prepare_charts(self.payload)
+        overview = {"total_distance", "heldout_distance", "mean_sent_len", "comma_per_sentence"}
+        expected = render_svg([chart for chart in charts if chart["feature"] in overview], attempts, subtitle)
+        path = ROOT / "examples/live_convergence.svg"
+        if self.payload["completion"]["status"] == "running":
+            self.skipTest("Overview is written after generation completes")
+        self.assertEqual(path.read_text(encoding="utf-8"), expected)
 
 
 if __name__ == "__main__":

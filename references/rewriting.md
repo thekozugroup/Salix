@@ -39,6 +39,10 @@ For each pass:
 
 1. Read `top_gaps` and select up to three safe, relevant changes. Use
    `feature`, `direction`, `target`, and `benchmark`; `edit_hint` is advisory.
+   Consider rhythm, structure, and vocabulary together. Do not fill every slot
+   with rare function-word insertions just because those gaps rank highly.
+   If the sample format differs from the requested draft, identify the mismatch
+   and keep task-appropriate writing rather than forcing the sample's structure.
 2. Edit only the needed prose. Prefer cadence, punctuation, sentence boundaries,
    or existing transitions. Do not replace paragraphs wholesale unless the
    user explicitly asks for a broader rewrite.

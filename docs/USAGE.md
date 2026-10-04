@@ -108,6 +108,9 @@ Collect your own `.txt` or `.md` writing samples. Prefer multiple independent
 pieces from the relevant register. Around 3,000 total cleaned words, or 10,000+
 when available, is guidance, not a guarantee. Individual samples below 300
 cleaned words are skipped by default.
+Match audience and format: a narrative profile is not automatically a good
+target for emails or dialogue-heavy scenes. The current language heuristics
+are English-focused; scores for other languages need separate validation.
 
 After choosing the store and sample directory:
 

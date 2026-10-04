@@ -138,12 +138,41 @@ def main() -> int:
     parser.add_argument("--input", default="examples/live_convergence.json")
     parser.add_argument("--out", default="examples/live_convergence.svg")
     parser.add_argument("--charts-dir", default="examples/live_convergence_charts")
+    parser.add_argument("--comparison-out", default="examples/live_comparison.md")
+    parser.add_argument("--allow-partial", action="store_true", help="Development preview only")
     args = parser.parse_args()
     payload = load_json(Path(args.input))
+    if payload["completion"]["status"] != "attempt_budget_exhausted" and not args.allow_partial:
+        parser.error("Record is incomplete. Use --allow-partial only for a development preview.")
     charts, attempts, subtitle = prepare_charts(payload)
     write_charts(charts, attempts, subtitle, Path(args.out), Path(args.charts_dir))
+    write_comparison(payload, Path(args.comparison_out))
     print(f"Wrote {args.out} and {args.charts_dir}")
     return 0
+
+
+def write_comparison(payload: dict, path: Path) -> None:
+    calls = payload["calls"]
+    best = payload["completion"]["retained"]
+    records = [("Base Prompt Only", calls[0]), ("Base + Explicit Style Prompt", calls[1])]
+    if best is not None:
+        records.append(("Base + Salix Feedback", calls[best]))
+    lines = ["# Recorded Writing Comparison", "", "Exact model texts from [the experiment record](live_convergence.json).",
+             "The Salix condition uses a controlled measurement-feedback harness, not automatic host skill selection.",
+             "", "## Base Prompt", "", "```text", payload["prompt"], "```", "",
+             'The explicit-style condition adds: "Write in the style of Arthur Conan Doyle\'s Sherlock Holmes stories."',
+             "", f"Recorded rewrite attempts: {payload['completion']['attempts']}. Final retained call: {best}.",
+             "", "| Condition | Training Distance | Held-Out Distance | Whitespace Words | Salix Words |",
+             "| --- | ---: | ---: | ---: | ---: |"]
+    for label, record in records:
+        lines.append(f"| {label} | {record['training_distance']:.4f} | {record['heldout_distance']:.4f} | "
+                     f"{len(record['text'].split())} | {record['stats']['word_count']} |")
+    lines.extend(["", "Lower distances are not quality grades. Mechanical fact/copy screens do not prove semantic preservation.",
+                  "See [method and limitations](../docs/BENCHMARK.md) and [every variable chart](live_convergence_charts/README.md)."])
+    for label, record in records:
+        lines.extend(["", f"## {label}", "", f"Text SHA-256: `{record['sha256']}`", "", record["text"]])
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def prepare_charts(payload: dict) -> tuple[list[dict], int, str]:
@@ -157,6 +186,9 @@ def prepare_charts(payload: dict) -> tuple[list[dict], int, str]:
                          "kind": "distance", "unit": "weighted Salix distance; lower is closer"}
     specifications.insert(1, {"feature": "heldout_distance", "title": "Distance to held-out profile",
                               "kind": "distance", "unit": "held-out scores do not rank edits; lower is closer"})
+    for chart in specifications:
+        if chart["feature"] == "comma_per_sentence":
+            chart["unit"] = "commas per sentence"
 
     def value(call_index: int | None, chart: dict) -> float | None:
         if call_index is None:

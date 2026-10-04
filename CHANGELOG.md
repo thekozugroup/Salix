@@ -14,6 +14,10 @@ All notable changes to Salix. Format: [Keep a Changelog](https://keepachangelog.
   preserved alongside the shared installer and marketplace packages.
 - Progressive skill references and a shorter README with an agent install prompt.
 - Runtime timing harness and installation, hook, archive, scope, and evidence tests.
+- Real Codex 50-attempt writing experiment with three prompt conditions, separate
+  corpus splits, exact prompts/drafts, replay checks, and 101 variable charts.
+- Isolated opt-in experiment runner with secret screening, tool-event rejection,
+  atomic checkpoints, and preserved failure records.
 
 ### Changed
 - Shared token counts, cached sentence parsing, normalized character reuse,
@@ -25,9 +29,9 @@ All notable changes to Salix. Format: [Keep a Changelog](https://keepachangelog.
 - Simulator history now measures the actual final text, including zero-edit runs.
 
 ### Corrected
-- Sherlock charts are now explicitly a deterministic benchmark-copy fixture,
-  not a validated AI/Salix convergence experiment. Static comparisons are
-  separate lines; exact texts, hashes, backends, and source provenance are stored.
+- The old Sherlock benchmark-copy fixture is explicitly labeled and archived.
+  The README now shows actual model measurements, including rejected candidates
+  and plateaus; neither dataset claims universal or complete convergence.
 - Removed unsupported guarantees about topic blindness, writing quality, and
   numerical completion from the user-facing overview.
 

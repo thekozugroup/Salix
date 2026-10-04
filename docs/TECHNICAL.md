@@ -45,7 +45,9 @@ records its backend and source hashes for reproducibility.
   Report corpus/splits and held-out results; do not generalize from one corpus.
 - **Host rewrite evaluation:** requires actual prompts, model/settings, intermediate
   drafts, held-out benchmark samples, and independent checks of meaning and quality.
-  The repository's Sherlock fixture does not provide this evidence.
+  The [recorded Sherlock experiment](BENCHMARK.md) captures actual model drafts
+  and separate corpus splits. Its mechanical validation does not certify quality,
+  universal convergence, or superiority to a direct style prompt.
 
 ## Reproduce
 
@@ -54,6 +56,8 @@ python3 -m unittest discover -v tests/
 python3 -m ruff check lib/ scripts/ salix tests/
 ./salix validate --seed 0 --authors 5 --docs-per-author 6 --out validation/results.md
 python3 scripts/demo_convergence.py
+python3 scripts/live_convergence.py --validate examples/live_convergence.json
+python3 scripts/render_live_convergence.py
 python3 scripts/build_skill_bundle.py --release
 ```
 
@@ -61,6 +65,8 @@ The simulator performs rule-based diagnostic edits. It can plateau and can alter
 meaning; do not use it as the production rewrite engine or replace source files
 with its output. Actual skill rewrites preserve the original and prioritize
 meaning over score. Default host edit limits are deliberately bounded.
+The recorded 50-attempt harness intentionally exceeds those limits to expose
+plateaus. It is not a recommendation to spend fifty model calls on each draft.
 
 ## Performance
 

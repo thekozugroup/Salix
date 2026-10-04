@@ -677,19 +677,26 @@ class TestCLI(unittest.TestCase):
             self.assertTrue((charts_dir / "README.md").exists())
             self.assertIn("Burrows Delta MFW distance", (charts_dir / "README.md").read_text())
 
-    def test_readme_references_validated_convergence_artifacts(self):
+    def test_readme_references_recorded_experiment_artifacts(self):
         readme = (ROOT / "README.md").read_text()
-        self.assertIn("examples/convergence_demo.svg", readme)
-        self.assertIn("examples/convergence_demo.json", readme)
-        self.assertIn("examples/convergence_charts", readme)
-        self.assertIn("scripts/demo_convergence.py", readme)
+        self.assertIn("examples/live_convergence.svg", readme)
+        self.assertIn("examples/live_convergence.json", readme)
+        self.assertIn("examples/live_convergence_charts", readme)
+        self.assertIn("scripts/live_convergence.py --validate", readme)
+        self.assertIn("docs/BENCHMARK.md", readme)
+        self.assertIn("does not achieve full benchmark alignment", readme)
 
     def test_docs_compare_base_style_prompt_and_salix_outputs(self):
-        for rel in ["README.md", "examples/README.md"]:
-            doc = (ROOT / rel).read_text()
-            self.assertIn("Base prompt only", doc)
-            self.assertIn('Prompt plus "write in the style of Sherlock Holmes"', doc)
-            self.assertIn("Base prompt plus Salix", doc)
+        payload = json.loads((ROOT / "examples/live_convergence.json").read_text())
+        readme = (ROOT / "README.md").read_text()
+        full = (ROOT / "examples/live_comparison.md").read_text()
+        for index in (0, 1, payload["completion"]["retained"]):
+            text = payload["calls"][index]["text"]
+            self.assertIn(text.split("\n\n")[0], readme)
+            self.assertIn(text, full)
+        self.assertIn("Base prompt only", readme)
+        self.assertIn("write in the style of Arthur Conan Doyle", readme)
+        self.assertIn("Base + Salix feedback", readme)
 
     def test_build_skill_bundle_contains_clean_salix_skill_folder(self):
         import subprocess

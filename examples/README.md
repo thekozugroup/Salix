@@ -1,5 +1,15 @@
 # Examples
 
+## Recorded Model Experiment
+
+[Full real outputs and exact prompt](live_comparison.md),
+[51 recorded states over 50 rewrite attempts](live_convergence.json), and
+[all 101 variable charts](live_convergence_charts/README.md) now provide a real
+Codex measurement-feedback experiment. See [method and limits](../docs/BENCHMARK.md).
+It shows partial improvement and plateaus, not full benchmark alignment or
+universal writing superiority. The older copy fixture below is kept separately
+for diagnostic reproducibility and is never counted as model output.
+
 `example_benchmark.json` is a Salix benchmark generated from the project's own
 documentation (README.md, SKILL.md, CHANGELOG.md). Use it to inspect what a
 real benchmark file looks like, including the `_sigma` empirical-variance
@@ -108,10 +118,12 @@ delete arbitrary SVGs in the chart folder; obsolete files may remain unindexed.
 rewrite succeeded. Independent tests remeasure recorded texts and reject
 tampered evidence or claims of AI/Salix generation or convergence.
 
-## Evidence Still Missing
+## Copy-Fixture Evidence Limits
 
-There are no recorded models, providers, inference settings, real prompt
+This copy fixture has no recorded models, providers, inference settings, real prompt
 outputs, gap-driven model edits, independent benchmark corpus, held-out texts,
 or evaluations of originality, task fidelity, meaning preservation, and
 writing quality. Repeated training-text copying cannot substitute for those.
-This fixture supports inspecting the metrics and chart pipeline only.
+This fixture supports inspecting the metrics and chart pipeline only. The
+separate recorded experiment above supplies actual drafts but retains its own
+single-run, corpus, semantic-quality, and host-context limitations.

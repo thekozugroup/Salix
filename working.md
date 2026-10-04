@@ -14,7 +14,7 @@
 - Three specialist agents completed runtime, evidence, and skill documentation work.
 - Parent integrated installer, package allowlist, manifests/hooks, CLI diagnostics,
   scope metadata, documentation, and integration tests.
-- Full combined suite: 181 tests, no failures. Python 3.11 with installed-host
+- Full combined suite: 208 tests, no failures. Python 3.11 with installed-host
   checks enabled skips one optional spaCy test; Python 3.10 skips three optional tests.
 - Both native plugin managers passed isolated-home local install checks.
 - Ruff and shell syntax checks pass; release assets built locally in ignored dist/.
@@ -23,10 +23,20 @@
   failures found by reviewers are fixed and covered by regressions.
 - Final independent recheck found no remaining scoped defects. Native manifest
   sources now share the symlink protections used for all other package inputs.
-- Integrated main commit 2ac9504 is pushed; its GitHub CI passed all jobs.
-- Final safety commit, exact-commit rebuild, and release verification pending.
-- A live Codex generation probe succeeded. An isolated 50-attempt experiment
-  is being prepared; it must retain plateaus, failures, and all actual drafts.
+- Main installation/safety work is pushed; GitHub CI passed 5971570.
+- Real model experiment completed: 52 calls, 50 rewrite attempts, 51 measured
+  states. Attempts 1 and 35 were retained; final selected call is 36.
+- Training distance 2.4416 -> 2.1400; held-out 1.1912 -> 1.1057. All prompts,
+  outputs, hashes, screens, and selection history are stored. Four overview
+  graphs and 101 variable graphs reproduce from recorded values.
+- Independent canonical-source download matches the stored SHA-256. Independent
+  replay/source checks passed; reading found preserved fixed facts but
+  overconfident causal reasoning. Full convergence and prose superiority are
+  not proven. The stronger result must not hide rejected drafts or plateaus.
+- Original 16-attempt harness is archived with its audit stop, original selection
+  history, and disclosed unrecorded interruption. Six harness findings are fixed
+  and regression-tested in the separate completed run.
+- Final evidence/docs commit, exact-commit rebuild, and release verification pending.
 - Do not touch unrelated untracked .a5c/ files.
 
 ## Quality Gates
@@ -41,10 +51,11 @@
 
 ## Remaining Work
 
-- Commit/push the final safety fix and verify exact committed state.
+- Commit/push the final evidence/docs and verify exact committed state.
 - Publish release assets only after checks of the committed revision.
-- Complete and independently validate the live AI rewrite experiment. The
-  existing 50-step copy fixture cannot fulfill that proof requirement.
+- Broaden real writing evaluation across authors, prompts, genres, and repeated
+  model samples. Calibrate style evidence separately from semantic quality.
+  Neither the completed run nor the archived copy fixture proves full convergence.
 - Claude app upload and in-session host skill selection need live user-host QA.
 - Real spaCy/pyphen performance and Windows installation are not verified.
 - Do not assign universal 100% grades or imply perfect writing fidelity.

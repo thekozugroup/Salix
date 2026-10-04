@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420" role="img" aria-labelledby="title desc">
+<title id="title">Sherlock Holmes rewrite experiment</title>
+<desc id="desc">50 recorded rewrite attempts; gpt-5.6-sol; three training and three held-out passages.. Candidate drafts include rejected attempts. Retained drafts are selected using training measurements, not held-out results. Lower distance is not a percentage voice match.</desc>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<g font-family="Arial, sans-serif" fill="#20252b">
+<text x="64" y="38" font-size="22" font-weight="700">Sherlock Holmes rewrite experiment</text>
+<text x="64" y="62" font-size="12" fill="#53616f">50 recorded rewrite attempts; gpt-5.6-sol; three training and three held-out passages.</text>
+<text x="64" y="82" font-size="12" fill="#53616f">Recorded outputs and measured scores; no benchmark copying or forced alignment.</text>
+<text x="64" y="128" font-size="17" font-weight="700">Function word &quot;to&quot;</text>
+<text x="64" y="148" font-size="12" fill="#53616f">occurrences per 1k words</text>
+<line x1="64" y1="296.00" x2="856" y2="296.00" stroke="#e6e9ed"/>
+<text x="56" y="300.00" font-size="10" text-anchor="end" fill="#53616f">0</text>
+<line x1="64" y1="250.00" x2="856" y2="250.00" stroke="#e6e9ed"/>
+<text x="56" y="254.00" font-size="10" text-anchor="end" fill="#53616f">8.964</text>
+<line x1="64" y1="204.00" x2="856" y2="204.00" stroke="#e6e9ed"/>
+<text x="56" y="208.00" font-size="10" text-anchor="end" fill="#53616f">17.93</text>
+<line x1="64" y1="158.00" x2="856" y2="158.00" stroke="#e6e9ed"/>
+<text x="56" y="162.00" font-size="10" text-anchor="end" fill="#53616f">26.89</text>
+<polyline data-series-id="candidate" points="64.00,225.98 79.84,249.09 95.68,240.12 111.52,266.22 127.36,265.93 143.20,258.54 159.04,216.28 174.88,240.82 190.72,228.73 206.56,230.33 222.40,228.98 238.24,212.93 254.08,202.18 269.92,250.67 285.76,248.13 301.60,246.27 317.44,245.29 333.28,266.95 349.12,246.56 364.96,239.09 380.80,249.60 396.64,248.22 412.48,257.20 428.32,248.57 444.16,258.20 460.00,235.03 475.84,268.11 491.68,266.79 507.52,265.21 523.36,230.81 539.20,249.01 555.04,247.68 570.88,220.12 586.72,197.69 602.56,217.20 618.40,221.08 634.24,275.99 650.08,234.54 665.92,204.20 681.76,248.57 697.60,266.56 713.44,255.51 729.28,186.60 745.12,238.77 760.96,245.59 776.80,247.13 792.64,286.28 808.48,247.03 824.32,248.31 840.16,258.20 856.00,267.60" fill="none" stroke="#8b949e" stroke-width="1.25" stroke-dasharray="none" stroke-linejoin="round"><title>Every candidate draft: 13.6452 to 5.5351</title></polyline>
+<polyline data-series-id="base" points="64.00,225.98 79.84,225.98 95.68,225.98 111.52,225.98 127.36,225.98 143.20,225.98 159.04,225.98 174.88,225.98 190.72,225.98 206.56,225.98 222.40,225.98 238.24,225.98 254.08,225.98 269.92,225.98 285.76,225.98 301.60,225.98 317.44,225.98 333.28,225.98 349.12,225.98 364.96,225.98 380.80,225.98 396.64,225.98 412.48,225.98 428.32,225.98 444.16,225.98 460.00,225.98 475.84,225.98 491.68,225.98 507.52,225.98 523.36,225.98 539.20,225.98 555.04,225.98 570.88,225.98 586.72,225.98 602.56,225.98 618.40,225.98 634.24,225.98 650.08,225.98 665.92,225.98 681.76,225.98 697.60,225.98 713.44,225.98 729.28,225.98 745.12,225.98 760.96,225.98 776.80,225.98 792.64,225.98 808.48,225.98 824.32,225.98 840.16,225.98 856.00,225.98" fill="none" stroke="#d55e00" stroke-width="2.3" stroke-dasharray="4 4" stroke-linejoin="round"><title>Base prompt only: 13.6452 to 13.6452</title></polyline>
+<polyline data-series-id="style" points="64.00,253.94 79.84,253.94 95.68,253.94 111.52,253.94 127.36,253.94 143.20,253.94 159.04,253.94 174.88,253.94 190.72,253.94 206.56,253.94 222.40,253.94 238.24,253.94 254.08,253.94 269.92,253.94 285.76,253.94 301.60,253.94 317.44,253.94 333.28,253.94 349.12,253.94 364.96,253.94 380.80,253.94 396.64,253.94 412.48,253.94 428.32,253.94 444.16,253.94 460.00,253.94 475.84,253.94 491.68,253.94 507.52,253.94 523.36,253.94 539.20,253.94 555.04,253.94 570.88,253.94 586.72,253.94 602.56,253.94 618.40,253.94 634.24,253.94 650.08,253.94 665.92,253.94 681.76,253.94 697.60,253.94 713.44,253.94 729.28,253.94 745.12,253.94 760.96,253.94 776.80,253.94 792.64,253.94 808.48,253.94 824.32,253.94 840.16,253.94 856.00,253.94" fill="none" stroke="#7c3aed" stroke-width="2.3" stroke-dasharray="4 4" stroke-linejoin="round"><title>Base + explicit style prompt: 8.1967 to 8.1967</title></polyline>
+<polyline data-series-id="benchmark" points="64.00,169.66 79.84,169.66 95.68,169.66 111.52,169.66 127.36,169.66 143.20,169.66 159.04,169.66 174.88,169.66 190.72,169.66 206.56,169.66 222.40,169.66 238.24,169.66 254.08,169.66 269.92,169.66 285.76,169.66 301.60,169.66 317.44,169.66 333.28,169.66 349.12,169.66 364.96,169.66 380.80,169.66 396.64,169.66 412.48,169.66 428.32,169.66 444.16,169.66 460.00,169.66 475.84,169.66 491.68,169.66 507.52,169.66 523.36,169.66 539.20,169.66 555.04,169.66 570.88,169.66 586.72,169.66 602.56,169.66 618.40,169.66 634.24,169.66 650.08,169.66 665.92,169.66 681.76,169.66 697.60,169.66 713.44,169.66 729.28,169.66 745.12,169.66 760.96,169.66 776.80,169.66 792.64,169.66 808.48,169.66 824.32,169.66 840.16,169.66 856.00,169.66" fill="none" stroke="#00856a" stroke-width="2.3" stroke-dasharray="4 4" stroke-linejoin="round"><title>Author profile reference: 24.619 to 24.619</title></polyline>
+<polyline data-series-id="retained" points="64.00,225.98 79.84,249.09 95.68,249.09 111.52,249.09 127.36,249.09 143.20,249.09 159.04,249.09 174.88,249.09 190.72,249.09 206.56,249.09 222.40,249.09 238.24,249.09 254.08,249.09 269.92,249.09 285.76,249.09 301.60,249.09 317.44,249.09 333.28,249.09 349.12,249.09 364.96,249.09 380.80,249.09 396.64,249.09 412.48,249.09 428.32,249.09 444.16,249.09 460.00,249.09 475.84,249.09 491.68,249.09 507.52,249.09 523.36,249.09 539.20,249.09 555.04,249.09 570.88,249.09 586.72,249.09 602.56,249.09 618.40,221.08 634.24,221.08 650.08,221.08 665.92,221.08 681.76,221.08 697.60,221.08 713.44,221.08 729.28,221.08 745.12,221.08 760.96,221.08 776.80,221.08 792.64,221.08 808.48,221.08 824.32,221.08 840.16,221.08 856.00,221.08" fill="none" stroke="#2563eb" stroke-width="2.3" stroke-dasharray="none" stroke-linejoin="round"><title>Salix retained draft: 13.6452 to 14.5985</title></polyline>
+<text x="64.00" y="314" font-size="10" text-anchor="middle" fill="#53616f">0</text>
+<text x="143.20" y="314" font-size="10" text-anchor="middle" fill="#53616f">5</text>
+<text x="222.40" y="314" font-size="10" text-anchor="middle" fill="#53616f">10</text>
+<text x="301.60" y="314" font-size="10" text-anchor="middle" fill="#53616f">15</text>
+<text x="380.80" y="314" font-size="10" text-anchor="middle" fill="#53616f">20</text>
+<text x="460.00" y="314" font-size="10" text-anchor="middle" fill="#53616f">25</text>
+<text x="539.20" y="314" font-size="10" text-anchor="middle" fill="#53616f">30</text>
+<text x="618.40" y="314" font-size="10" text-anchor="middle" fill="#53616f">35</text>
+<text x="697.60" y="314" font-size="10" text-anchor="middle" fill="#53616f">40</text>
+<text x="776.80" y="314" font-size="10" text-anchor="middle" fill="#53616f">45</text>
+<text x="856.00" y="314" font-size="10" text-anchor="middle" fill="#53616f">50</text>
+<line x1="64" y1="330" x2="79" y2="330" stroke="#8b949e" stroke-width="2"/>
+<text x="86" y="334" font-size="11">Every candidate draft</text>
+<line x1="334" y1="330" x2="349" y2="330" stroke="#d55e00" stroke-width="2"/>
+<text x="356" y="334" font-size="11">Base prompt only</text>
+<line x1="604" y1="330" x2="619" y2="330" stroke="#7c3aed" stroke-width="2"/>
+<text x="626" y="334" font-size="11">Base + explicit style prompt</text>
+<line x1="64" y1="352" x2="79" y2="352" stroke="#00856a" stroke-width="2"/>
+<text x="86" y="356" font-size="11">Author profile reference</text>
+<line x1="334" y1="352" x2="349" y2="352" stroke="#2563eb" stroke-width="2"/>
+<text x="356" y="356" font-size="11">Salix retained draft</text>
+<text x="460.0" y="381" font-size="11" text-anchor="middle" fill="#53616f">Attempted rewrite</text>
+</g>
+</svg>
