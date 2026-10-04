@@ -14,10 +14,14 @@
 - Three specialist agents completed runtime, evidence, and skill documentation work.
 - Parent integrated installer, package allowlist, manifests/hooks, CLI diagnostics,
   scope metadata, documentation, and integration tests.
-- Full Python 3.11 suite: 151 tests, no failures, three optional skips.
+- Full combined suite: 180 tests, no failures. Python 3.11 with installed-host
+  checks enabled skips one optional spaCy test; Python 3.10 skips three optional tests.
 - Both native plugin managers passed isolated-home local install checks.
 - Ruff and shell syntax checks pass; release assets built locally in ignored dist/.
-- Python 3.10 run and final independent reviews are being completed.
+- Incoming remote social-reference workflows and separate host bundles preserved.
+- Extreme-number, JSON depth/size, hook-disable, source-overlap, and metadata
+  failures found by reviewers are fixed and covered by regressions.
+- Final independent recheck, exact-commit rebuild, and remote verification pending.
 - Do not touch unrelated untracked .a5c/ files.
 
 ## Quality Gates
@@ -32,7 +36,7 @@
 
 ## Remaining Work
 
-- Finish review, final tests, commit/push, and verify exact committed state.
+- Finish review, merge commit/push, and verify exact committed state.
 - Publish release assets only after checks of the committed revision.
 - Real AI comparison/convergence evidence remains missing. The checked-in
   50-step fixture copies training text and cannot fulfill that proof requirement.

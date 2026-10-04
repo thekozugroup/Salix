@@ -133,6 +133,11 @@ the runtime, and references. The plugin ZIP additionally contains both manifests
 the native skill wrapper, and hooks. Private samples, profiles, tests, and caches
 are excluded. `SHA256SUMS` records the archive hashes; these are integrity checks,
 not publisher signatures. Tagged releases publish all four assets.
+For separate host packages, add `--all`. This preserves `dist/codex/salix` and
+`dist/claude/salix` with their runtimes inside `skills/salix`, plus
+`Salix.codex-plugin.zip` and `Salix.claude-plugin.zip`. With `--release --all`,
+checksums include all five archives. Session hooks in these packages use the
+nested runtime; the repository marketplace uses the root runtime instead.
 
 In Claude's Skills settings, upload `Salix.zip` (or `.skill` if accepted) and enable
 it. UI labels may differ by Claude version/account. Upload does not install a

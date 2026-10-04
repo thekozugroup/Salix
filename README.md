@@ -114,6 +114,20 @@ Regenerate with `python3 scripts/demo_convergence.py`. A real held-out,
 meaning-preserving model rewrite experiment remains necessary before making
 product convergence claims.
 
+## Social References
+
+Build source-linked social-post libraries and separate author profiles without
+mixing comments, summaries, or shared repost bodies into an author's writing.
+Keep factual review and publication approval separate from stylistic similarity.
+See [social records and commands](references/social.md).
+
+```bash
+./salix social ingest records.json --out-dir references-library --metrics-only
+./salix social profile references-library --out profiles.json
+./salix social compare profiles.json --out chart-data.json
+./salix social review draft.md --policy review-policy.json --out review.json
+```
+
 ## Measurements
 
 Sentence rhythm, vocabulary, punctuation, readability, function-word patterns,
@@ -135,6 +149,7 @@ feature details, validation limits, and reproducible checks.
 
 Build local release assets with
 `python3 scripts/build_skill_bundle.py --release`: **Salix.skill**, **Salix.zip**,
-**Salix-plugin.zip**, and **SHA256SUMS** in `dist/`.
+**Salix-plugin.zip**, and **SHA256SUMS** in `dist/`. Add `--all` for the
+self-contained Codex/Claude plugin directories and separate host ZIPs.
 
 [MIT License](LICENSE)

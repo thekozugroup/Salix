@@ -173,7 +173,7 @@ class InstallationTests(unittest.TestCase):
     def test_release_archives_deterministic_and_runtime_works(self):
         out = self.home / "release/Salix.skill"
         args = (sys.executable, str(ROOT / "scripts/build_skill_bundle.py"),
-                "--release", "--out", str(out))
+                "--release", "--all", "--out", str(out))
         self.run_command(*args)
         before = out.read_bytes()
         self.run_command(*args)
@@ -199,6 +199,18 @@ class InstallationTests(unittest.TestCase):
             for path in (".claude-plugin/plugin.json", ".codex-plugin/plugin.json",
                          "hooks/hooks.json", "scripts/session_hook.py", "skills/salix/SKILL.md"):
                 self.assertIn(f"salix/{path}", archive.namelist())
+        for platform in ("codex", "claude"):
+            folder = self.home / f"{platform}-extracted"
+            with zipfile.ZipFile(out.parent / f"Salix.{platform}-plugin.zip") as archive:
+                archive.extractall(folder)
+            cli = folder / "salix/skills/salix/salix"
+            self.assertTrue(json.loads(self.run_command(
+                sys.executable, str(cli), "doctor", "--json").stdout)["ok"])
+            self.env["SALIX_HOOKS"] = "1"
+            hook = cli.parent / "scripts/session_hook.py"
+            event = json.dumps({"hook_event_name": "SessionStart", "cwd": str(self.project)})
+            context = json.loads(self.run_command(sys.executable, str(hook), input=event).stdout)
+            self.assertEqual(context["hookSpecificOutput"]["hookEventName"], "SessionStart")
 
 
 if __name__ == "__main__":

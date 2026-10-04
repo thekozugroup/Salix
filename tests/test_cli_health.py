@@ -81,6 +81,8 @@ class CLIHealthTests(unittest.TestCase):
                  {"schema_version": 2, "stats": {"ttr": 1e308}},
                  {"schema_version": 2, "stats": {"ttr": 0.5, "mfw_top150": [["the", 1e308]]}},
                  {"schema_version": 2, "stats": {"ttr": 1.2}},
+                 {"schema_version": 2, "stats": {"ttr": 0.5, "formality_source": 5}},
+                 {"schema_version": 2, "stats": {"ttr": 0.5, "formality_source": []}},
                  {"schema_version": 2, "stats": {"ttr": 0.5, "char_3grams": [["abc", "bad"]]}},
                  {"schema_version": 2, "stats": {"ttr": 0.5, "_sigma": {"ttr": -1}}}]
         for value in cases:

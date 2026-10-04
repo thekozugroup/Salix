@@ -1,6 +1,6 @@
 ---
 name: salix
-description: Build or refresh a personal writing-style profile from samples, rewrite a draft in that voice, analyze writing, compare a draft with a saved profile, or set up and troubleshoot Salix. Use for "make this sound like me", "rewrite in my voice", "learn my writing style", "build my profile", "compare this to my style", "set up Salix", $salix, or /salix. Not for unrelated writing tasks without a personal-style or Salix request.
+description: Build or refresh a personal writing-style profile from samples, rewrite a draft in that voice, build source-linked social-post libraries and author-isolated profiles, review factual/approval attestations, analyze writing, compare a draft with a saved profile, or set up and troubleshoot Salix. Use for "make this sound like me", "rewrite in my voice", "learn my writing style", "build my profile", "compare this to my style", "set up Salix", $salix, or /salix. Not for unrelated writing tasks without a personal-style or Salix request.
 ---
 
 # Salix
@@ -71,6 +71,20 @@ python3 "$SALIX_CLI" compare "$DRAFT" --profile "$PROFILE" --home "$PROFILE_HOME
 
 Set `DRAFT`, `PROFILE`, and `PROFILE_HOME` to the chosen document's absolute path,
 profile name, and resolved store. `analyze` needs no profile or scope flags.
+
+## Social References
+
+For short social posts, external-source research, metrics-only capture, author
+comparisons, or draft exclusions/approval checks, read
+[Social References](references/social.md). Use `python3 "$SALIX_CLI" social`
+with the same absolute runtime and project working directory described above.
+Keep metadata, excerpts, researcher summaries, comments, and shared repost bodies
+out of author prose. Measure only attributable complete originals or explicitly
+isolated original repost captions. Keep profiles author-isolated; small corpora
+are provisional. Never transfer another author's claims to the user's speaker.
+Measurements are not an engagement predictor or a fine-tuned model. Publication,
+factual approval, and stylistic similarity are distinct. Attestations do not
+independently verify facts, identity, claim coverage, or publishing permission.
 
 ## Non-Negotiable Checks
 

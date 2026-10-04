@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
+import shutil
 import stat
 import tempfile
 import zipfile
@@ -47,20 +49,57 @@ def build_bundle(out_path: Path, plugin: bool = False) -> None:
             os.unlink(temporary)
 
 
+def build_plugin(out_dir: Path, platform: str) -> Path:
+    """Preserve the separate host artifacts, using the shared runtime allowlist."""
+    if platform not in {"codex", "claude"}:
+        raise ValueError("platform must be codex or claude")
+    package_files(ROOT, plugin=True)
+    plugin_root = out_dir / platform / "salix"
+    files = {f"skills/salix/{rel}": ROOT / rel for rel in package_files(ROOT)}
+    manifest = f".{platform}-plugin/plugin.json"
+    files[manifest] = ROOT / "packaging" / "salix" / manifest
+    files["skills/salix/scripts/session_hook.py"] = ROOT / "scripts/session_hook.py"
+    for relative, original in files.items():
+        destination = plugin_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(original, destination)
+    (plugin_root / "skills/salix/salix").chmod(0o755)
+    hooks = json.loads((ROOT / "hooks/hooks.json").read_text())
+    for group in hooks["hooks"]["SessionStart"]:
+        for hook in group["hooks"]:
+            hook["command"] = hook["command"].replace(
+                "/scripts/session_hook.py", "/skills/salix/scripts/session_hook.py")
+    hooks_path = plugin_root / "hooks/hooks.json"
+    hooks_path.parent.mkdir(parents=True, exist_ok=True)
+    hooks_path.write_text(json.dumps(hooks, indent=2) + "\n")
+    archive = out_dir / f"Salix.{platform}-plugin.zip"
+    with zipfile.ZipFile(archive, "w") as zf:
+        for relative in [*files, "hooks/hooks.json"]:
+            path = plugin_root / relative
+            zf.writestr(_zipinfo(path, f"salix/{relative}"), path.read_bytes())
+    return plugin_root
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build dist/Salix.skill")
     parser.add_argument("--out", default="dist/Salix.skill")
     parser.add_argument("--release", action="store_true", help="Also build Salix.zip, plugin ZIP, checksums")
+    parser.add_argument("--all", action="store_true", help="Also build separate native host directories and ZIPs")
     args = parser.parse_args()
     out_path = Path(args.out)
     build_bundle(out_path)
     print(f"Wrote {out_path}")
+    host_archives = []
+    if args.all:
+        for platform in ("codex", "claude"):
+            print(f"Wrote {build_plugin(out_path.parent, platform)}")
+            host_archives.append(out_path.parent / f"Salix.{platform}-plugin.zip")
     if args.release:
         zip_path = out_path.parent / "Salix.zip"
         plugin_path = out_path.parent / "Salix-plugin.zip"
         zip_path.write_bytes(out_path.read_bytes())
         build_bundle(plugin_path, plugin=True)
-        artifacts = [out_path, zip_path, plugin_path]
+        artifacts = [out_path, zip_path, plugin_path, *host_archives]
         checksum_path = out_path.parent / "SHA256SUMS"
         checksum_path.write_text("".join(
             f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in artifacts

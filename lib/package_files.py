@@ -4,11 +4,11 @@ from pathlib import Path
 
 RUNTIME_FILES = (
     "SKILL.md", "LICENSE", "salix", "lib/__init__.py", "lib/distance.py",
-    "lib/function_words.py", "lib/io_utils.py", "lib/stats.py", "lib/tone.py",
+    "lib/function_words.py", "lib/io_utils.py", "lib/stats.py", "lib/tone.py", "lib/social.py",
     "lib/package_files.py", "scripts/_path.py", "scripts/analyze.py",
     "scripts/compare.py", "scripts/ingest.py", "scripts/simulate_loop.py",
     "scripts/validate.py", "scripts/stamatatos_baseline.py", "scripts/visualize.py",
-    "references/setup.md", "references/rewriting.md", "references/validation.md",
+    "references/setup.md", "references/rewriting.md", "references/validation.md", "references/social.md",
     "agents/openai.yaml",
     "benchmarks/.gitkeep", "samples/.gitkeep",
 )

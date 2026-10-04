@@ -191,7 +191,9 @@ def _load_bench(name: str) -> dict:
                      "char_4grams", "pos_bigrams", "pos_trigrams", "mfw_top150"}
     ratio_features = {"ttr", "long_word_ratio", "short_sent_ratio", "long_sent_ratio", "simpson_d"}
     for key, value in stats.items():
-        if key in {"_sigma", "_mfw_sigma", "_pos_sigma"}:
+        if key == "formality_source":
+            valid = isinstance(value, str) and value in {"spacy", "suffix_proxy"}
+        elif key in {"_sigma", "_mfw_sigma", "_pos_sigma"}:
             valid = (isinstance(value, dict) and all(
                 isinstance(k, str) and number(v) and v >= 0 for k, v in value.items()))
         elif key in list_features:
@@ -616,6 +618,8 @@ def build_parser() -> argparse.ArgumentParser:
     _add_scope_flags(p_sim)
     p_sim.set_defaults(fn=cmd_simulate)
 
+    from lib.social import add_parser
+    add_parser(sub)
     return p
 
 

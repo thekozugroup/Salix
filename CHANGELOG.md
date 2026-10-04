@@ -10,6 +10,8 @@ All notable changes to Salix. Format: [Keep a Changelog](https://keepachangelog.
 - Native plugin manifests/marketplaces and opt-in SessionStart profile context.
 - `setup`, `doctor --json`, `status --json`, and `hooks` configuration commands.
 - Reproducible `.skill`, `.zip`, plugin archives, and SHA-256 release checksums.
+- Existing social-reference commands and separate host plugin packages are
+  preserved alongside the shared installer and marketplace packages.
 - Progressive skill references and a shorter README with an agent install prompt.
 - Runtime timing harness and installation, hook, archive, scope, and evidence tests.
 
