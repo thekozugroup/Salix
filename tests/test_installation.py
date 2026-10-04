@@ -10,9 +10,13 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "scripts"))
+import build_skill_bundle as bundle  # noqa: E402
+
 from lib.package_files import package_files  # noqa: E402
 
 
@@ -142,6 +146,23 @@ class InstallationTests(unittest.TestCase):
         self.assertIn("containing the source checkout", result.stderr)
         self.assertFalse(self.codex.is_symlink())
         self.assertTrue((source / "salix").exists())
+
+    def test_both_native_manifest_sources_reject_private_symlinks(self):
+        source = self.home / "native-source"
+        for name in package_files(ROOT, plugin=True):
+            destination = source / name
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(ROOT / name, destination)
+        private = self.home / "private.json"
+        private.write_text('{"private":"do not package"}')
+        for platform in ("codex", "claude"):
+            manifest = source / f"packaging/salix/.{platform}-plugin/plugin.json"
+            manifest.parent.mkdir(parents=True)
+            manifest.symlink_to(private)
+            with self.subTest(platform=platform), patch.object(bundle, "ROOT", source):
+                with self.assertRaisesRegex(ValueError, "without symlinks"):
+                    bundle.build_plugin(self.home / "native-out", platform)
+            self.assertFalse((self.home / f"native-out/Salix.{platform}-plugin.zip").exists())
 
     def test_remote_copy_survives_temporary_download_cleanup(self):
         archive_path = self.home / "source.zip"

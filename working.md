@@ -14,14 +14,19 @@
 - Three specialist agents completed runtime, evidence, and skill documentation work.
 - Parent integrated installer, package allowlist, manifests/hooks, CLI diagnostics,
   scope metadata, documentation, and integration tests.
-- Full combined suite: 180 tests, no failures. Python 3.11 with installed-host
+- Full combined suite: 181 tests, no failures. Python 3.11 with installed-host
   checks enabled skips one optional spaCy test; Python 3.10 skips three optional tests.
 - Both native plugin managers passed isolated-home local install checks.
 - Ruff and shell syntax checks pass; release assets built locally in ignored dist/.
 - Incoming remote social-reference workflows and separate host bundles preserved.
 - Extreme-number, JSON depth/size, hook-disable, source-overlap, and metadata
   failures found by reviewers are fixed and covered by regressions.
-- Final independent recheck, exact-commit rebuild, and remote verification pending.
+- Final independent recheck found no remaining scoped defects. Native manifest
+  sources now share the symlink protections used for all other package inputs.
+- Integrated main commit 2ac9504 is pushed; its GitHub CI passed all jobs.
+- Final safety commit, exact-commit rebuild, and release verification pending.
+- A live Codex generation probe succeeded. An isolated 50-attempt experiment
+  is being prepared; it must retain plateaus, failures, and all actual drafts.
 - Do not touch unrelated untracked .a5c/ files.
 
 ## Quality Gates
@@ -36,10 +41,10 @@
 
 ## Remaining Work
 
-- Finish review, merge commit/push, and verify exact committed state.
+- Commit/push the final safety fix and verify exact committed state.
 - Publish release assets only after checks of the committed revision.
-- Real AI comparison/convergence evidence remains missing. The checked-in
-  50-step fixture copies training text and cannot fulfill that proof requirement.
+- Complete and independently validate the live AI rewrite experiment. The
+  existing 50-step copy fixture cannot fulfill that proof requirement.
 - Claude app upload and in-session host skill selection need live user-host QA.
 - Real spaCy/pyphen performance and Windows installation are not verified.
 - Do not assign universal 100% grades or imply perfect writing fidelity.

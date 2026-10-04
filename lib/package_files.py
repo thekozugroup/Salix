@@ -18,6 +18,18 @@ PLUGIN_FILES = (
 )
 
 
+def validate_source(root: Path, name: str) -> Path:
+    root = root.resolve()
+    path = root / name
+    if not path.is_file():
+        raise ValueError(f"Missing package file: {name}")
+    if not path.resolve().is_relative_to(root) or any(
+            part.is_symlink() for part in [path, *path.parents]
+            if part != root and root in part.parents):
+        raise ValueError(f"Package file must be inside the checkout without symlinks: {name}")
+    return path
+
+
 def package_files(root: Path, plugin: bool = False) -> list[str]:
     root = root.resolve()
     files = list(RUNTIME_FILES)
@@ -31,8 +43,5 @@ def package_files(root: Path, plugin: bool = False) -> list[str]:
     if missing:
         raise ValueError("Missing package files: " + ", ".join(missing))
     for name in files:
-        path = root / name
-        if not path.resolve().is_relative_to(root) or any(
-                part.is_symlink() for part in [path, *path.parents] if part != root and root in part.parents):
-            raise ValueError(f"Package file must be inside the checkout without symlinks: {name}")
+        validate_source(root, name)
     return files

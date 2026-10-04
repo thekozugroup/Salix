@@ -19,7 +19,7 @@ from pathlib import Path
 
 import _path  # noqa: F401
 
-from lib.package_files import package_files
+from lib.package_files import package_files, validate_source
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,7 +57,7 @@ def build_plugin(out_dir: Path, platform: str) -> Path:
     plugin_root = out_dir / platform / "salix"
     files = {f"skills/salix/{rel}": ROOT / rel for rel in package_files(ROOT)}
     manifest = f".{platform}-plugin/plugin.json"
-    files[manifest] = ROOT / "packaging" / "salix" / manifest
+    files[manifest] = validate_source(ROOT, f"packaging/salix/{manifest}")
     files["skills/salix/scripts/session_hook.py"] = ROOT / "scripts/session_hook.py"
     for relative, original in files.items():
         destination = plugin_root / relative
