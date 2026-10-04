@@ -611,8 +611,10 @@ class TestCLI(unittest.TestCase):
             self.assertIn("Convergence by recursive edit", res.stdout)
             self.assertIn("mean_sent_len", res.stdout)
 
-    def test_demo_convergence_generates_validated_chart_lines(self):
+    def test_demo_convergence_generates_measured_fixture_chart_lines(self):
         import subprocess
+        sys.path.insert(0, str(ROOT / "scripts"))
+        from scripts.demo_convergence import chart_series
         with tempfile.TemporaryDirectory() as tmp:
             json_out = Path(tmp) / "demo.json"
             svg_out = Path(tmp) / "demo.svg"
@@ -626,30 +628,34 @@ class TestCLI(unittest.TestCase):
             )
             self.assertEqual(res.returncode, 0, res.stderr)
             payload = json.loads(json_out.read_text())
-            self.assertTrue(payload["validated"])
+            self.assertTrue(payload["validation"]["passed"])
+            self.assertEqual(payload["validation"]["scope"], "provenance_and_metric_consistency_only")
             self.assertGreaterEqual(len(payload["iterations"]), 51)
-            self.assertTrue(payload["completion"]["aligned"])
-            self.assertGreaterEqual(payload["completion"]["completed_iteration"], 50)
+            self.assertFalse(payload["completion"]["ai_or_salix_convergence_proven"])
+            self.assertTrue(payload["completion"]["final_text_equals_benchmark"])
+            self.assertEqual(payload["completion"]["final_step"], 50)
             self.assertLessEqual(payload["completion"]["final_total_distance"], 0.05)
             self.assertGreaterEqual(payload["completion"]["chart_count"], 90)
             self.assertEqual(payload["completion"]["overview_chart_count"], 7)
             self.assertIn("Sherlock Holmes", payload["source"])
             self.assertIn("gutenberg.org/ebooks/1661", payload["source"])
-            distances = [row["total_distance"] for row in payload["iterations"]]
+            distances = [row["values"]["total_distance"] for row in payload["iterations"]]
             self.assertLess(distances[-1], distances[0] * 0.75)
             for chart in payload["charts"]:
-                series_labels = [series["label"] for series in chart["series"]]
+                series = chart_series(payload, chart)
+                series_labels = [row["label"] for row in series]
                 self.assertEqual(
                     series_labels,
                     [
-                        "Base prompt only",
-                        'Prompt plus "write in the style of Sherlock Holmes"',
-                        "Base prompt plus Salix",
-                        "Benchmark",
+                        "Base example (static)",
+                        "Style example (static)",
+                        "Salix-inspired (static)",
+                        "Copy fixture (deterministic)",
+                        "Benchmark (4x excerpt)",
                     ],
                 )
-                target = chart["series"][2]["points"]
-                benchmark = chart["benchmark_series"]
+                target = series[3]["points"]
+                benchmark = series[4]["points"]
                 self.assertEqual(len(target), len(benchmark))
                 self.assertGreaterEqual(len(target), 51)
                 initial_gap = abs(target[0]["value"] - benchmark[0]["value"])
@@ -658,14 +664,14 @@ class TestCLI(unittest.TestCase):
                     self.assertLess(final_gap, initial_gap)
                 self.assertLessEqual(final_gap, 0.05)
             svg = svg_out.read_text()
-            self.assertIn("Validated Sherlock Holmes fixture", svg)
-            self.assertIn("Base prompt only", svg)
-            self.assertIn("Base prompt plus Salix", svg)
+            self.assertIn("Deterministic metric fixture: benchmark-copy sanity check", svg)
+            self.assertIn("Base example (static)", svg)
+            self.assertIn("Salix-inspired (static)", svg)
             self.assertIn("Function word", svg)
             self.assertIn("Burrows Delta MFW distance", svg)
             self.assertIn(">50</text>", svg)
             self.assertNotIn("<rect x=\"64.0\" y=\"92\"", svg)
-            self.assertEqual(svg.count("<polyline"), payload["completion"]["overview_chart_count"] * 4)
+            self.assertEqual(svg.count("<polyline"), payload["completion"]["overview_chart_count"] * 5)
             chart_files = sorted(charts_dir.glob("*.svg"))
             self.assertEqual(len(chart_files), payload["completion"]["chart_count"])
             self.assertTrue((charts_dir / "README.md").exists())

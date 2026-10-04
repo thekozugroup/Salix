@@ -1,0 +1,65 @@
+{
+  "python": "3.11.1",
+  "platform": "macOS-26.5.1-arm64-arm-64bit",
+  "baseline_ref": "65b6f59b2b9202166446c46dca43a183533bc81a",
+  "baseline_scope": "lib/stats.py with current lib dependencies",
+  "pos_backend": "suffix_proxy",
+  "syllable_backend": "vowel_proxy",
+  "warmup_analyses_per_workload": 2,
+  "repeat": 7,
+  "number": 5,
+  "features_equal": true,
+  "results": [
+    {
+      "workload": "short_draft",
+      "characters": 376,
+      "words": 56,
+      "current": {
+        "median_ms": 0.8036,
+        "min_ms": 0.7345,
+        "max_ms": 0.8212
+      },
+      "baseline": {
+        "median_ms": 1.0337,
+        "min_ms": 0.9885,
+        "max_ms": 1.0647
+      },
+      "speedup": 1.286,
+      "time_reduction_pct": 22.26
+    },
+    {
+      "workload": "many_paragraphs",
+      "characters": 94498,
+      "words": 14000,
+      "current": {
+        "median_ms": 106.9098,
+        "min_ms": 105.0344,
+        "max_ms": 107.2862
+      },
+      "baseline": {
+        "median_ms": 165.8475,
+        "min_ms": 163.4652,
+        "max_ms": 179.3617
+      },
+      "speedup": 1.551,
+      "time_reduction_pct": 35.54
+    },
+    {
+      "workload": "long_repeated",
+      "characters": 145000,
+      "words": 25000,
+      "current": {
+        "median_ms": 182.0439,
+        "min_ms": 179.6532,
+        "max_ms": 195.2841
+      },
+      "baseline": {
+        "median_ms": 266.595,
+        "min_ms": 264.8879,
+        "max_ms": 271.5731
+      },
+      "speedup": 1.464,
+      "time_reduction_pct": 31.72
+    }
+  ]
+}

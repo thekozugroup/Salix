@@ -1,0 +1,6 @@
+{
+  "name": "kozu-writing",
+  "metadata": {"description": "Personal writing skills from thekozugroup."},
+  "owner": {"name": "thekozugroup", "email": "thekozugroup@gmail.com"},
+  "plugins": [{"name": "salix", "source": "./", "description": "Writing that sounds like you"}]
+}

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Salix"
+  short_description: "Build your writing voice and refine drafts"
+  default_prompt: "Use $salix to make this draft sound like me while preserving its facts, quotes, and numbers."
+
+policy:
+  allow_implicit_invocation: true

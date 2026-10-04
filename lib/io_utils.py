@@ -10,6 +10,7 @@ Never substitutes U+FFFD silently — corrupted bytes either decode under a
 fallback encoding or surface as an explicit error to the caller.
 """
 
+import json
 import re
 import warnings
 from collections.abc import Iterable
@@ -68,11 +69,19 @@ def clean_text(raw: str) -> str:
 
 def _read_with_fallback(path: Path) -> str:
     """Read text with explicit encoding fallbacks. Never silently corrupts bytes."""
-    raw_bytes = path.read_bytes()
+    file_size = path.stat().st_size
+    if file_size > MAX_FILE_BYTES:
+        raise ValueError(
+            f"{path} is {file_size:,} bytes; exceeds MAX_FILE_BYTES "
+            f"({MAX_FILE_BYTES:,}). Split or sample the corpus."
+        )
+    # Bound the read too: the file can grow or be replaced after stat().
+    with path.open("rb") as stream:
+        raw_bytes = stream.read(MAX_FILE_BYTES + 1)
     if len(raw_bytes) > MAX_FILE_BYTES:
         raise ValueError(
-            f"{path} is {len(raw_bytes):,} bytes; exceeds MAX_FILE_BYTES "
-            f"({MAX_FILE_BYTES:,}). Split or sample the corpus."
+            f"{path} exceeds MAX_FILE_BYTES ({MAX_FILE_BYTES:,}). "
+            "Split or sample the corpus."
         )
     # Strip BOM if present
     if raw_bytes.startswith(b"\xef\xbb\xbf"):
@@ -93,6 +102,20 @@ def load_text(path: Path) -> str:
     if not cleaned.strip():
         warnings.warn(f"{p} cleaned to empty — likely all code/markdown/URLs", stacklevel=2)
     return cleaned
+
+
+def load_json(path: Path, max_bytes: int = 8 * 1024 * 1024):
+    """Bound local configuration/profile reads and contain parser-depth errors."""
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"JSON file {path} exceeds the {max_bytes:,}-byte limit.")
+    with path.open("rb") as stream:
+        raw = stream.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise ValueError(f"JSON file {path} exceeds the {max_bytes:,}-byte limit.")
+    try:
+        return json.loads(raw)
+    except (RecursionError, UnicodeDecodeError) as exc:
+        raise ValueError(f"Invalid JSON encoding or nesting depth in {path}.") from exc
 
 
 def load_corpus(sample_dir: Path, extensions: Iterable[str] = (".txt", ".md")) -> str:

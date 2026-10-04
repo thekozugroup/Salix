@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import random
 import re
+import sys
 from pathlib import Path
 
 import _path  # noqa: F401
@@ -184,6 +185,10 @@ def pick_edits(gap_report: dict):
 
 def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: float,
              verbose: bool = False) -> dict:
+    """Try at most max_iter edits; history includes the initial and final states."""
+    if max_iter < 0:
+        raise ValueError("max_iter must be non-negative")
+
     def finish(final_text: str, stop_reason: str) -> dict:
         initial = history[0]["distance"] if history else 0.0
         final = history[-1]["distance"] if history else 0.0
@@ -202,10 +207,9 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
     text = target_text
     last_distance = None
     plateau = 0
+    gap = compute_gaps(analyze(text), benchmark_stats)
 
-    for i in range(max_iter):
-        stats = analyze(text)
-        gap = compute_gaps(stats, benchmark_stats)
+    for i in range(max_iter + 1):
         entry = {"iter": i, "distance": gap["total_distance"]}
         if gap["top_gaps"]:
             entry["top_gap"] = gap["top_gaps"][0]["feature"]
@@ -215,7 +219,8 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
         if verbose:
             top = gap["top_gaps"][:1]
             top_str = top[0]["feature"] if top else "—"
-            print(f"  iter {i}: distance={gap['total_distance']:.4f}  top_gap={top_str}")
+            print(f"  iter {i}: distance={gap['total_distance']:.4f}  top_gap={top_str}",
+                  file=sys.stderr)
 
         if gap["total_distance"] < threshold:
             history[-1]["status"] = "converged"
@@ -229,23 +234,29 @@ def run_loop(target_text: str, benchmark_stats: dict, max_iter: int, threshold: 
             plateau = 0
         last_distance = gap["total_distance"]
 
+        if i == max_iter:
+            return finish(text, "max_iter")
+
         new_text = text
         chosen_gap = None
+        accepted_gap = None
         for edit_fn, gap_item in pick_edits(gap):
             attempt = edit_fn(text)
             if attempt != text:
-                attempt_distance = compute_gaps(analyze(attempt), benchmark_stats)["total_distance"]
-                if attempt_distance <= gap["total_distance"] + 0.001:
+                attempt_gap = compute_gaps(analyze(attempt), benchmark_stats)
+                if attempt_gap["total_distance"] <= gap["total_distance"] + 0.001:
                     new_text = attempt
                     chosen_gap = gap_item
+                    accepted_gap = attempt_gap
                     break
         if new_text == text:
             return finish(text, "no_applicable_rule_changed_text")
         if verbose and chosen_gap:
-            print(f"           applied edit for {chosen_gap['feature']}")
+            print(f"           applied edit for {chosen_gap['feature']}", file=sys.stderr)
         if chosen_gap:
             history[-1]["applied_edit"] = chosen_gap["feature"]
         text = new_text
+        gap = accepted_gap
 
     return finish(text, "max_iter")
 
@@ -268,15 +279,16 @@ def main() -> int:
     target_text = load_text(Path(args.target_text))
 
     if args.verbose:
-        print(f"Initial text:\n{target_text[:200]}{'...' if len(target_text) > 200 else ''}\n")
+        print(f"Initial text:\n{target_text[:200]}{'...' if len(target_text) > 200 else ''}\n",
+              file=sys.stderr)
 
     result = run_loop(target_text, bench_stats, args.max_iter, args.threshold, args.verbose)
 
     print(f"\nStop reason: {result['stop_reason']}")
-    print(f"Iterations:  {len(result['history'])}")
+    print(f"Iterations:  {len(result['history']) - 1}")
     print("Distance trajectory:", " → ".join(f"{h['distance']:.3f}" for h in result["history"]))
-    initial = result["history"][0]["distance"]
-    final = result["history"][-1]["distance"]
+    initial = result["initial_distance"]
+    final = result["final_distance"]
     delta = initial - final
     print(f"Improvement: {initial:.3f} → {final:.3f} (Δ {delta:+.3f})")
 

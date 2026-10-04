@@ -2,6 +2,33 @@
 
 All notable changes to Salix. Format: [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.10.0] - 2026-10-04
+
+### Added
+- One-command, self-contained skill installation for Codex and Claude Code,
+  with project installs, managed upgrades, backups, and protected removal.
+- Native plugin manifests/marketplaces and opt-in SessionStart profile context.
+- `setup`, `doctor --json`, `status --json`, and `hooks` configuration commands.
+- Reproducible `.skill`, `.zip`, plugin archives, and SHA-256 release checksums.
+- Progressive skill references and a shorter README with an agent install prompt.
+- Runtime timing harness and installation, hook, archive, scope, and evidence tests.
+
+### Changed
+- Shared token counts, cached sentence parsing, normalized character reuse,
+  and one spaCy pass reduce redundant analysis without changing checked features.
+- Auto profile lookup falls back to the same named global profile when absent
+  locally; comparison output reports the resolved profile/store/scope.
+- File-size checks run before allocation, with bounded reads for growing files.
+- Malformed profiles produce clear errors; diagnostic checks do not create state.
+- Simulator history now measures the actual final text, including zero-edit runs.
+
+### Corrected
+- Sherlock charts are now explicitly a deterministic benchmark-copy fixture,
+  not a validated AI/Salix convergence experiment. Static comparisons are
+  separate lines; exact texts, hashes, backends, and source provenance are stored.
+- Removed unsupported guarantees about topic blindness, writing quality, and
+  numerical completion from the user-facing overview.
+
 ## [0.9.0] — 2026-04-28
 
 Round-4 + round-5 reviewer punch lists. Final measurement-quality polish.

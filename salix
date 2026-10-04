@@ -22,18 +22,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
+import shlex
 import sys
 from pathlib import Path
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from lib.distance import compute_gaps  # noqa: E402
-from lib.io_utils import load_text  # noqa: E402
+from lib.distance import EXPECTED_SIGMA, SKIP_FEATURES, compute_gaps  # noqa: E402
+from lib.io_utils import load_json, load_text  # noqa: E402
 from lib.stats import analyze  # noqa: E402
 
 # SALIX_HOME points to where benchmarks/ and samples/ live. It is resolved
@@ -109,6 +111,13 @@ def _configure_home(args) -> None:
         getattr(args, "home", None),
         getattr(args, "project_dir", None),
     )
+    selected = getattr(args, "scope", None) or os.environ.get("SALIX_SCOPE", "auto")
+    profile = getattr(args, "profile", None)
+    if (selected == "auto" and ACTIVE_SCOPE == "project" and profile
+            and not getattr(args, "home", None) and not os.environ.get("SALIX_HOME")
+            and not (SALIX_HOME / "benchmarks" / f"{profile}.json").exists()
+            and (_global_home() / "benchmarks" / f"{profile}.json").is_file()):
+        SALIX_HOME, ACTIVE_SCOPE = _global_home().resolve(), "global"
     BENCH_DIR = SALIX_HOME / "benchmarks"
     SAMPLES_DIR = SALIX_HOME / "samples"
 
@@ -130,6 +139,10 @@ def _bench_path(name: str) -> Path:
     return BENCH_DIR / f"{name}.json"
 
 
+def _command_example(*arguments: str) -> str:
+    return shlex.join([sys.executable, str(ROOT / "salix"), *arguments, "--home", str(SALIX_HOME)])
+
+
 # Latest benchmark schema version we read. Older files emit a clear error.
 SCHEMA_VERSION = 2
 
@@ -144,12 +157,12 @@ def _load_bench(name: str) -> dict:
     if not p.exists():
         raise SystemExit(
             f"No benchmark named '{name}' at {p}.\n"
-            f"Run `salix ingest --name {name}` after dropping samples in {SAMPLES_DIR}/"
+            f"Run `{_command_example('ingest', '--name', name)}` after adding samples to {SAMPLES_DIR}/"
         )
     last_err = None
     for attempt in range(3):
         try:
-            data = json.loads(p.read_text())
+            data = load_json(p)
             break
         except json.JSONDecodeError as e:
             last_err = e
@@ -159,7 +172,44 @@ def _load_bench(name: str) -> dict:
             f"Benchmark {p} could not be decoded after 3 attempts: {last_err}.\n"
             "If this is a malformed file, re-run `salix ingest`."
         )
+    if not isinstance(data, dict):
+        raise ValueError(f"Benchmark {p} must be a JSON object. Rebuild with salix ingest.")
     sv = data.get("schema_version", 1)
+    if not isinstance(sv, int) or isinstance(sv, bool) or sv < 1:
+        raise ValueError(f"Benchmark {p} has an invalid schema version.")
+    stats = data.get("stats", data)
+    if not isinstance(stats, dict) or not any(k in stats for k in ("ttr", "mean_sent_len")):
+        raise ValueError(f"Benchmark {p} has no style statistics. Rebuild with salix ingest.")
+    def number(value, limit=1_000_000_000):
+        try:
+            return (isinstance(value, (int, float)) and not isinstance(value, bool)
+                    and math.isfinite(value) and abs(value) <= limit)
+        except OverflowError:
+            return False
+
+    list_features = {"fw_bigrams", "fw_trigrams", "sentence_starters", "char_3grams",
+                     "char_4grams", "pos_bigrams", "pos_trigrams", "mfw_top150"}
+    ratio_features = {"ttr", "long_word_ratio", "short_sent_ratio", "long_sent_ratio", "simpson_d"}
+    for key, value in stats.items():
+        if key in {"_sigma", "_mfw_sigma", "_pos_sigma"}:
+            valid = (isinstance(value, dict) and all(
+                isinstance(k, str) and number(v) and v >= 0 for k, v in value.items()))
+        elif key in list_features:
+            valid = isinstance(value, list) and all(
+                isinstance(pair, (list, tuple)) and len(pair) == 2
+                and isinstance(pair[0], str) and number(pair[1], 1000 if key == "mfw_top150" else 1)
+                and pair[1] >= 0
+                for pair in value)
+        elif key in ratio_features:
+            valid = number(value, 1) and value >= 0
+        elif key == "sentiment_polarity":
+            valid = number(value, 1)
+        elif key in EXPECTED_SIGMA or key in SKIP_FEATURES or key.endswith("_per1k"):
+            valid = number(value)
+        else:
+            valid = not isinstance(value, (int, float)) or number(value)
+        if not valid:
+            raise ValueError(f"Benchmark {p} has invalid statistics for {key}. Rebuild with salix ingest.")
     if sv > SCHEMA_VERSION:
         raise SystemExit(
             f"Benchmark {p} declares schema_version={sv} but this CLI only "
@@ -199,6 +249,15 @@ def _sample_file_count(limit: int = 1000) -> str:
 
 def cmd_status(args):
     profiles = _list_profiles()
+    if getattr(args, "json", False):
+        print(json.dumps({
+            "version": __version__, "root": str(ROOT), "home": str(SALIX_HOME),
+            "scope": ACTIVE_SCOPE, "profiles": profiles, "sample_files": _sample_file_count(),
+            "project_home": str(_project_home(getattr(args, "project_dir", None))),
+            "global_home": str(_global_home().resolve()),
+            "next_step": "compare" if profiles else "ingest",
+        }))
+        return 0
     print(f"Salix root:       {ROOT}")
     print(f"SALIX_HOME:       {SALIX_HOME}")
     print(f"Scope:            {ACTIVE_SCOPE}")
@@ -223,9 +282,9 @@ def cmd_status(args):
         print("\nNext steps:")
         print(f"  1. Add .txt or .md writing samples to {SAMPLES_DIR}/")
         print("  2. Build your profile:")
-        print("     ./salix ingest --name default")
+        print(f"     {_command_example('ingest', '--name', 'default')}")
         print("  3. Check it:")
-        print("     ./salix benchmark --profile default")
+        print(f"     {_command_example('benchmark', '--profile', 'default')}")
         print("\nTip: 3,000+ words is good. 10,000+ is better.")
     return 0
 
@@ -250,7 +309,71 @@ def cmd_init(args):
     print(f"Benchmarks:       {BENCH_DIR}")
     print("\nNext:")
     print(f"  1. Put .txt or .md writing samples in {SAMPLES_DIR}/")
-    print("  2. Run: ./salix ingest --name default")
+    print(f"  2. Run: {_command_example('ingest', '--name', 'default')}")
+    return 0
+
+
+def cmd_setup(args):
+    cmd_init(args)
+    if args.samples:
+        return cmd_ingest(args)
+    return 0
+
+
+def cmd_doctor(args):
+    from lib.package_files import package_files
+    checks = []
+    try:
+        package_files(ROOT)
+        checks.append({"name": "runtime", "status": "ok", "detail": "All runtime files present"})
+    except ValueError as exc:
+        checks.append({"name": "runtime", "status": "error", "detail": str(exc)})
+    for name in _list_profiles():
+        try:
+            _load_bench(name)
+            checks.append({"name": f"profile:{name}", "status": "ok", "detail": "Readable style profile"})
+        except (SystemExit, OSError, ValueError) as exc:
+            checks.append({"name": f"profile:{name}", "status": "error", "detail": str(exc)})
+    if not _list_profiles():
+        checks.append({"name": "profiles", "status": "action", "detail": "Add writing samples, then run salix setup --samples PATH"})
+    ok = all(check["status"] != "error" for check in checks)
+    result = {"ok": ok, "version": __version__, "python": sys.version.split()[0],
+              "scope": ACTIVE_SCOPE, "home": str(SALIX_HOME), "checks": checks}
+    if args.json:
+        print(json.dumps(result))
+    else:
+        print(f"Salix {__version__} | Python {result['python']} | {ACTIVE_SCOPE}")
+        for check in checks:
+            print(f"  {check['status']}: {check['name']} - {check['detail']}")
+    return 0 if ok else 1
+
+
+def cmd_hooks(args):
+    path = SALIX_HOME / "config.json"
+    config = load_json(path, max_bytes=65536) if path.is_file() else {}
+    if not isinstance(config, dict):
+        raise ValueError(f"Invalid configuration: {path}")
+    if args.action != "status":
+        BENCH_DIR.mkdir(parents=True, exist_ok=True)
+        SAMPLES_DIR.mkdir(parents=True, exist_ok=True)
+        if ACTIVE_SCOPE == "project" and not (SALIX_HOME / ".gitignore").exists():
+            (SALIX_HOME / ".gitignore").write_text("*\n!.gitignore\n")
+        config["hooks_enabled"] = args.action == "enable"
+        import tempfile
+        fd, temporary = tempfile.mkstemp(prefix=".config-", dir=SALIX_HOME)
+        try:
+            with os.fdopen(fd, "w") as handle:
+                json.dump(config, handle, indent=2)
+                handle.write("\n")
+            os.replace(temporary, path)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+    saved = config.get("hooks_enabled") is True
+    override = os.environ.get("SALIX_HOOKS")
+    print(json.dumps({"hooks_enabled": saved,
+                      "effective_enabled": override == "1" if override is not None else saved,
+                      "scope": ACTIVE_SCOPE, "config": str(path)}))
     return 0
 
 
@@ -281,9 +404,11 @@ def cmd_compare(args):
     bench = _load_bench(args.profile)
     bench_stats = bench.get("stats", bench)
     report = compute_gaps(target, bench_stats)
+    report["profile"] = args.profile
+    report["profile_home"] = str(SALIX_HOME)
+    report["scope"] = ACTIVE_SCOPE
     if args.json:
-        json.dump(report, sys.stdout, indent=2 if args.pretty else None)
-        sys.stdout.write("\n")
+        print(json.dumps(report, indent=2 if args.pretty else None, allow_nan=False))
     else:
         from scripts.visualize import render_gap  # type: ignore
         print(render_gap(report))
@@ -366,7 +491,12 @@ def cmd_simulate(args):
     text = load_text(Path(args.path))
     import random
     random.seed(args.seed)
-    result = run_loop(text, bench_stats, args.max_iter, args.threshold, verbose=args.verbose)
+    if args.json and args.verbose:
+        from contextlib import redirect_stdout
+        with redirect_stdout(sys.stderr):
+            result = run_loop(text, bench_stats, args.max_iter, args.threshold, verbose=True)
+    else:
+        result = run_loop(text, bench_stats, args.max_iter, args.threshold, verbose=args.verbose)
     if args.out:
         Path(args.out).write_text(result["final_text"])
     if args.json:
@@ -374,7 +504,7 @@ def cmd_simulate(args):
         sys.stdout.write("\n")
         return 0
     print(f"\nStop reason: {result['stop_reason']}")
-    print(f"Iterations:  {len(result['history'])}")
+    print(f"Accepted edits: {max(len(result['history']) - 1, 0)}")
     print("Distance trajectory:", " -> ".join(f"{h['distance']:.3f}" for h in result["history"]))
     from scripts.visualize import render_convergence  # type: ignore
     print(render_convergence(result["history"]))
@@ -394,6 +524,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     p_status = sub.add_parser("status", help="Show profiles, samples, and next-step suggestions")
+    p_status.add_argument("--json", action="store_true")
     _add_scope_flags(p_status)
     p_status.set_defaults(fn=cmd_status)
 
@@ -404,6 +535,23 @@ def build_parser() -> argparse.ArgumentParser:
     p_init = sub.add_parser("init", help="Create a global or project Salix profile store")
     _add_scope_flags(p_init)
     p_init.set_defaults(fn=cmd_init)
+
+    p_setup = sub.add_parser("setup", help="Create a style store and optionally build its profile")
+    _add_scope_flags(p_setup)
+    p_setup.add_argument("--samples", help="Folder of existing .txt/.md writing samples")
+    p_setup.add_argument("--name", default="default")
+    p_setup.add_argument("--min-words", type=int, default=300)
+    p_setup.set_defaults(fn=cmd_setup)
+
+    p_doctor = sub.add_parser("doctor", help="Check runtime and profile health")
+    _add_scope_flags(p_doctor)
+    p_doctor.add_argument("--json", action="store_true")
+    p_doctor.set_defaults(fn=cmd_doctor)
+
+    p_hooks = sub.add_parser("hooks", help="Enable or disable plugin session context")
+    _add_scope_flags(p_hooks)
+    p_hooks.add_argument("action", choices=["enable", "disable", "status"])
+    p_hooks.set_defaults(fn=cmd_hooks)
 
     sub.add_parser("help", help="Show full CLI help").set_defaults(fn=cmd_help)
 
@@ -474,8 +622,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    _configure_home(args)
-    return args.fn(args)
+    try:
+        _configure_home(args)
+        return args.fn(args)
+    except (OSError, ValueError, TypeError, OverflowError, RecursionError) as exc:
+        print(f"Salix error: {exc}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":

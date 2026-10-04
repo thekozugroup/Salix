@@ -1,0 +1,8 @@
+{
+  "name": "salix",
+  "version": "0.10.0",
+  "description": "Learn your writing voice and guide measured, careful rewrites.",
+  "author": {"name": "thekozugroup", "email": "thekozugroup@gmail.com"},
+  "repository": "https://github.com/thekozugroup/Salix",
+  "license": "MIT"
+}

@@ -1,0 +1,17 @@
+{
+  "name": "salix",
+  "version": "0.10.0",
+  "description": "Learn your writing voice and guide measured, careful rewrites.",
+  "author": {"name": "thekozugroup", "email": "thekozugroup@gmail.com"},
+  "repository": "https://github.com/thekozugroup/Salix",
+  "license": "MIT",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Salix",
+    "shortDescription": "Writing that sounds like you",
+    "category": "Productivity",
+    "brandColor": "#18845B",
+    "defaultPrompt": ["Build my writing profile", "Rewrite this draft in my voice"]
+  }
+}

@@ -47,11 +47,11 @@ def _get_spacy_nlp():
     return _SPACY_NLP
 
 
-def _spacy_pos_counts(text: str) -> dict[str, int] | None:
-    """Real POS counts via spaCy when available. Returns None if unavailable."""
+def _spacy_pos_features(text: str) -> tuple[dict[str, int] | None, list[str] | None]:
+    """Collect POS counts and n-gram tags from one spaCy document."""
     nlp = _get_spacy_nlp()
     if nlp is None:
-        return None
+        return None, None
     doc = nlp(text)
     out = {"noun": 0, "adj": 0, "adv": 0, "verb": 0,
            "pron": 0, "article": 0, "prep": 0, "interj": 0}
@@ -61,19 +61,25 @@ def _spacy_pos_counts(text: str) -> dict[str, int] | None:
         "PRON": "pron", "DET": "article",
         "ADP": "prep", "INTJ": "interj",
     }
+    sequence = []
     for tok in doc:
-        bucket = pos_map.get(tok.pos_)
+        tag = tok.pos_
+        bucket = pos_map.get(tag)
         if bucket:
             out[bucket] += 1
-    return out
+        if tag != "SPACE":
+            sequence.append(tag)
+    return out, sequence
+
+
+def _spacy_pos_counts(text: str) -> dict[str, int] | None:
+    """Real POS counts via spaCy when available. Returns None if unavailable."""
+    return _spacy_pos_features(text)[0]
 
 
 def _spacy_pos_sequence(text: str) -> list[str] | None:
     """Coarse POS tag sequence for n-gram features. Universal POS tags."""
-    nlp = _get_spacy_nlp()
-    if nlp is None:
-        return None
-    return [tok.pos_ for tok in nlp(text) if tok.pos_ != "SPACE"]
+    return _spacy_pos_features(text)[1]
 
 
 def pos_ngrams(text: str, n: int = 2, top_k: int = 100) -> list[list]:
@@ -83,7 +89,10 @@ def pos_ngrams(text: str, n: int = 2, top_k: int = 100) -> list[list]:
     Argamon-Koppel showed they boost authorship attribution beyond what
     function-word n-grams alone provide.
     """
-    seq = _spacy_pos_sequence(text)
+    return _pos_ngrams_from_sequence(_spacy_pos_sequence(text), n, top_k)
+
+
+def _pos_ngrams_from_sequence(seq: list[str] | None, n: int, top_k: int) -> list[list]:
     if not seq or len(seq) < n:
         return []
     counter: Counter = Counter()
@@ -101,6 +110,15 @@ _ABBR = {
     "e.g", "i.e", "cf", "fig", "vol", "no", "p", "pp", "ch", "inc", "ltd",
     "co", "corp", "u.s", "u.k", "ph.d", "m.d", "a.m", "p.m",
 }
+# Keep canonical replacements, including re.IGNORECASE's non-ASCII matches.
+_ABBR_ORDER = sorted(_ABBR, key=lambda abbr: (-len(abbr), abbr))
+_ABBR_RE = re.compile(
+    r"\b(?:" + "|".join(
+        rf"(?P<abbr_{i}>{re.escape(abbr)})" for i, abbr in enumerate(_ABBR_ORDER)
+    ) + r")\.(?=\s|$)",
+    re.IGNORECASE,
+)
+_ABBR_REPLACEMENTS = {f"abbr_{i}": f"{abbr}·" for i, abbr in enumerate(_ABBR_ORDER)}
 SENT_SPLIT_RE = re.compile(r"(?<=[.!?…])[\"')\]]?\s+(?=\S)")
 DECIMAL_RE = re.compile(r"(\d)\.(\d)")
 
@@ -136,13 +154,7 @@ def split_sentences(text: str) -> list[str]:
     # Protect decimals: 3.14 -> 3·14 (interpunct placeholder, restored later)
     masked = DECIMAL_RE.sub(r"\1·\2", text)
     # Protect known abbreviations (case-insensitive).
-    for abbr in _ABBR:
-        masked = re.sub(
-            rf"\b{re.escape(abbr)}\.(?=\s|$)",
-            lambda m, a=abbr: f"{a}·",
-            masked,
-            flags=re.IGNORECASE,
-        )
+    masked = _ABBR_RE.sub(lambda m: _ABBR_REPLACEMENTS[m.lastgroup], masked)
     # Collapse runs of terminators: "..." stays, but "?!" or "!!" should still split.
     parts = SENT_SPLIT_RE.split(masked)
     sents = [p.replace("·", ".").strip() for p in parts if p.strip()]
@@ -163,8 +175,15 @@ def char_ngrams(text: str, n: int = 3, top_k: int = 200) -> list[list]:
     the apostrophe and a single space; everything else (digits, punctuation,
     symbols) is stripped, so the feature is robust to formatting noise.
     """
+    return _char_ngrams_from_normalized(_normalize_chars(text), n, top_k)
+
+
+def _normalize_chars(text: str) -> str:
     collapsed = re.sub(r"\s+", " ", text.lower())
-    norm = "".join(ch for ch in collapsed if ch.isalpha() or ch in (" ", "'"))
+    return "".join(ch for ch in collapsed if ch.isalpha() or ch in (" ", "'"))
+
+
+def _char_ngrams_from_normalized(norm: str, n: int, top_k: int) -> list[list]:
     if len(norm) < n:
         return []
     counter: Counter = Counter()
@@ -175,7 +194,8 @@ def char_ngrams(text: str, n: int = 3, top_k: int = 200) -> list[list]:
     return [[g, round(c / total, 6)] for g, c in items]
 
 
-def burrows_delta_features(tokens: list[str], total_words: int, top_k: int = 150) -> list[list]:
+def burrows_delta_features(tokens: list[str], total_words: int, top_k: int = 150,
+                          *, counts: Counter[str] | None = None) -> list[list]:
     """Most-frequent-word frequencies for Burrows' Delta.
 
     Returns the top-K *function-word* frequencies (per 1k words) — the
@@ -185,13 +205,15 @@ def burrows_delta_features(tokens: list[str], total_words: int, top_k: int = 150
     """
     if total_words == 0:
         return []
-    fw_counts = Counter(t for t in tokens if t in FUNCTION_WORDS)
+    if counts is None:
+        counts = Counter(tokens)
+    fw_counts = Counter({t: count for t, count in counts.items() if t in FUNCTION_WORDS})
     items = fw_counts.most_common(top_k)
     per1k = 1000.0 / total_words
     return [[w, round(c * per1k, 4)] for w, c in items]
 
 
-def yule_k(tokens: list[str]) -> float:
+def yule_k(tokens: list[str], *, counts: Counter[str] | None = None) -> float:
     """Yule's K — vocabulary diversity index, length-robust.
 
     K = 10000 * (Σ V(i,N) * i² - N) / N²
@@ -201,13 +223,14 @@ def yule_k(tokens: list[str]) -> float:
     n = len(tokens)
     if n < 2:
         return 0.0
-    counts = Counter(tokens)
+    if counts is None:
+        counts = Counter(tokens)
     freq_of_freq: Counter = Counter(counts.values())
     s2 = sum(i * i * v for i, v in freq_of_freq.items())
     return 10000.0 * (s2 - n) / (n * n)
 
 
-def honore_r(tokens: list[str]) -> float:
+def honore_r(tokens: list[str], *, counts: Counter[str] | None = None) -> float:
     """Honoré's R — emphasizes hapax legomena.
 
     R = 100 * log(N) / (1 - V1/V)
@@ -222,7 +245,8 @@ def honore_r(tokens: list[str]) -> float:
     n = len(tokens)
     if n < 50:
         return 0.0
-    counts = Counter(tokens)
+    if counts is None:
+        counts = Counter(tokens)
     v = len(counts)
     v1 = sum(1 for c in counts.values() if c == 1)
     if v == 0 or v1 == v:
@@ -232,7 +256,7 @@ def honore_r(tokens: list[str]) -> float:
     return 100.0 * math.log(n) / denom
 
 
-def simpson_d(tokens: list[str]) -> float:
+def simpson_d(tokens: list[str], *, counts: Counter[str] | None = None) -> float:
     """Simpson's D — probability that two random tokens differ in type.
 
     D = 1 - Σ n_i*(n_i - 1) / (N*(N - 1))
@@ -241,7 +265,8 @@ def simpson_d(tokens: list[str]) -> float:
     n = len(tokens)
     if n < 2:
         return 0.0
-    counts = Counter(tokens)
+    if counts is None:
+        counts = Counter(tokens)
     num = sum(c * (c - 1) for c in counts.values())
     return 1 - num / (n * (n - 1))
 
@@ -314,20 +339,21 @@ def punctuation_rates(text: str, total_words: int) -> dict[str, float]:
     return out
 
 
-def lexical_features(tokens: list[str]) -> dict[str, float]:
+def lexical_features(tokens: list[str], *, counts: Counter[str] | None = None) -> dict[str, float]:
     n = len(tokens)
     if n == 0:
         return {
             "word_count": 0, "type_count": 0, "ttr": 0.0, "mean_word_len": 0.0,
             "long_word_ratio": 0.0,
         }
-    types = set(tokens)
-    ttr = len(types) / n
-    mean_len = sum(len(t) for t in tokens) / n
-    long_words = sum(1 for t in tokens if len(t) >= 7)
+    if counts is None:
+        counts = Counter(tokens)
+    ttr = len(counts) / n
+    mean_len = sum(len(t) * count for t, count in counts.items()) / n
+    long_words = sum(count for t, count in counts.items() if len(t) >= 7)
     return {
         "word_count": n,
-        "type_count": len(types),
+        "type_count": len(counts),
         "ttr": ttr,
         "mean_word_len": mean_len,
         "long_word_ratio": long_words / n,
@@ -374,7 +400,8 @@ def _quantile(sorted_xs: list, q: float) -> float:
     return float(sorted_xs[lo] * (1 - frac) + sorted_xs[hi] * frac)
 
 
-def sentence_features(sentences: list[str]) -> dict[str, float]:
+def sentence_features(sentences: list[str], *,
+                      lengths: list[int] | None = None) -> dict[str, float]:
     if not sentences:
         return {
             "sentence_count": 0, "mean_sent_len": 0.0, "stdev_sent_len": 0.0,
@@ -383,7 +410,7 @@ def sentence_features(sentences: list[str]) -> dict[str, float]:
             "sent_len_p25": 0.0, "sent_len_p50": 0.0,
             "sent_len_p75": 0.0, "sent_len_p90": 0.0,
         }
-    lens = [len(tokenize(s)) for s in sentences]
+    lens = lengths if lengths is not None else [len(tokenize(s)) for s in sentences]
     n = len(lens)
     mean = sum(lens) / n
     var = sum((x - mean) ** 2 for x in lens) / n
@@ -407,18 +434,26 @@ def sentence_features(sentences: list[str]) -> dict[str, float]:
     }
 
 
-def readability(tokens: list[str], sentences: list[str]) -> dict[str, float]:
+def readability(tokens: list[str], sentences: list[str], *,
+                counts: Counter[str] | None = None) -> dict[str, float]:
     n_words = len(tokens)
     n_sents = max(len(sentences), 1)
     if n_words == 0:
         return {"flesch_kincaid_grade": 0.0, "gunning_fog": 0.0, "ari": 0.0}
-    syllables = sum(estimate_syllables(t) for t in tokens)
-    complex_words = sum(1 for t in tokens if estimate_syllables(t) >= 3)
+    if counts is None:
+        counts = Counter(tokens)
+    syllables = 0
+    complex_words = 0
+    for token, count in counts.items():
+        token_syllables = estimate_syllables(token)
+        syllables += token_syllables * count
+        if token_syllables >= 3:
+            complex_words += count
     words_per_sent = n_words / n_sents
 
     fk = 0.39 * words_per_sent + 11.8 * (syllables / n_words) - 15.59
     fog = 0.4 * (words_per_sent + 100.0 * complex_words / n_words)
-    chars = sum(len(t) for t in tokens)
+    chars = sum(len(t) * count for t, count in counts.items())
     ari = 4.71 * (chars / n_words) + 0.5 * words_per_sent - 21.43
     return {"flesch_kincaid_grade": fk, "gunning_fog": fog, "ari": ari}
 
@@ -436,10 +471,12 @@ FW_TRACKED = [
 ]
 
 
-def function_word_rates(tokens: list[str], total_words: int) -> dict[str, float]:
+def function_word_rates(tokens: list[str], total_words: int, *,
+                        counts: Counter[str] | None = None) -> dict[str, float]:
     if total_words == 0:
         return {f"fw_{w}_per1k": 0.0 for w in FW_TRACKED}
-    counts = Counter(tokens)
+    if counts is None:
+        counts = Counter(tokens)
     per1k = 1000.0 / total_words
     return {f"fw_{w}_per1k": counts.get(w, 0) * per1k for w in FW_TRACKED}
 
@@ -477,13 +514,15 @@ def function_word_ngrams(tokens: list[str], n: int = 2, top_k: int = 100) -> lis
     return [[g, round(c / total, 6)] for g, c in items]
 
 
-def sentence_starters(sentences: list[str], top_k: int = 15) -> list[list]:
+def sentence_starters(sentences: list[str], top_k: int = 15, *,
+                      starters: list[str] | None = None) -> list[list]:
     """Distribution of first words. Captures cadence."""
-    starters = []
-    for s in sentences:
-        toks = tokenize(s)
-        if toks:
-            starters.append(toks[0])
+    if starters is None:
+        starters = []
+        for sentence in sentences:
+            tokens = tokenize(sentence)
+            if tokens:
+                starters.append(tokens[0])
     if not starters:
         return []
     counter = Counter(starters)
@@ -580,22 +619,32 @@ def analyze(text: str) -> dict:
     """Top-level: compute the full feature dict for a text."""
     sentences = split_sentences(text)
     tokens = tokenize(text)
+    counts = Counter(tokens)
+    # Retain only sentence lengths/starters, not a second copy of all words.
+    sentence_lengths = []
+    starters = []
+    for sentence in sentences:
+        words = tokenize(sentence)
+        sentence_lengths.append(len(words))
+        if words:
+            starters.append(words[0])
+        del words
     n_words = len(tokens)
     text_lower = text.lower()
 
     features: dict = {}
-    features.update(lexical_features(tokens))
+    features.update(lexical_features(tokens, counts=counts))
     features["mtld"] = round(mtld(tokens), 3)
-    features["yule_k"] = round(yule_k(tokens), 3)
-    features["honore_r"] = round(honore_r(tokens), 3)
-    features["simpson_d"] = round(simpson_d(tokens), 4)
-    sf = sentence_features(sentences)
+    features["yule_k"] = round(yule_k(tokens, counts=counts), 3)
+    features["honore_r"] = round(honore_r(tokens, counts=counts), 3)
+    features["simpson_d"] = round(simpson_d(tokens, counts=counts), 4)
+    sf = sentence_features(sentences, lengths=sentence_lengths)
     features.update({k: round(v, 4) if isinstance(v, float) else v for k, v in sf.items()})
     features.update({k: round(v, 4) for k, v in punctuation_rates(text, n_words).items()})
-    features.update({k: round(v, 4) for k, v in readability(tokens, sentences).items()})
-    features.update({k: round(v, 4) for k, v in function_word_rates(tokens, n_words).items()})
+    features.update({k: round(v, 4) for k, v in readability(tokens, sentences, counts=counts).items()})
+    features.update({k: round(v, 4) for k, v in function_word_rates(tokens, n_words, counts=counts).items()})
 
-    spacy_pos = _spacy_pos_counts(text)
+    spacy_pos, pos_sequence = _spacy_pos_features(text)
     pos = spacy_pos if spacy_pos is not None else pos_proxies(tokens)
     features["formality_f_score"] = round(heylighen_f_score(pos, n_words), 3)
     features["formality_source"] = "spacy" if spacy_pos is not None else "suffix_proxy"
@@ -609,12 +658,13 @@ def analyze(text: str) -> dict:
     # Lists kept separately — distance.py treats these as distribution comparisons
     features["fw_bigrams"] = function_word_ngrams(tokens, n=2, top_k=100)
     features["fw_trigrams"] = function_word_ngrams(tokens, n=3, top_k=100)
-    features["char_3grams"] = char_ngrams(text, n=3, top_k=200)
-    features["char_4grams"] = char_ngrams(text, n=4, top_k=200)
-    features["mfw_top150"] = burrows_delta_features(tokens, n_words, top_k=150)
-    features["pos_bigrams"] = pos_ngrams(text, n=2, top_k=100)  # empty if no spaCy
-    features["pos_trigrams"] = pos_ngrams(text, n=3, top_k=100)
-    features["sentence_starters"] = sentence_starters(sentences, top_k=15)
+    normalized_chars = _normalize_chars(text)
+    features["char_3grams"] = _char_ngrams_from_normalized(normalized_chars, n=3, top_k=200)
+    features["char_4grams"] = _char_ngrams_from_normalized(normalized_chars, n=4, top_k=200)
+    features["mfw_top150"] = burrows_delta_features(tokens, n_words, top_k=150, counts=counts)
+    features["pos_bigrams"] = _pos_ngrams_from_sequence(pos_sequence, n=2, top_k=100)
+    features["pos_trigrams"] = _pos_ngrams_from_sequence(pos_sequence, n=3, top_k=100)
+    features["sentence_starters"] = sentence_starters(sentences, top_k=15, starters=starters)
 
     return features
 

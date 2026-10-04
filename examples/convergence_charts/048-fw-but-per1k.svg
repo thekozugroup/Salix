@@ -1,34 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="360" viewBox="0 0 920 360" role="img" aria-labelledby="title desc">
-<title id="title">Validated Sherlock Holmes Salix convergence</title>
-<desc id="desc">Measured chart lines show recursive Baker Street drafts converging toward a public-domain Sherlock Holmes benchmark style profile.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="440" viewBox="0 0 920 440" role="img" aria-labelledby="title desc">
+<title id="title">Deterministic metric fixture: benchmark-copy sanity check</title>
+<desc id="desc">50 deterministic copy steps, three static illustrative texts, and a repeated Sherlock Holmes benchmark. Values are measured from stored texts, not AI/Salix recursive edits or proof of convergence.</desc>
 <rect width="100%" height="100%" fill="#fbfaf7"/>
-<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1f2933">Validated Sherlock Holmes fixture</text>
-<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" fill="#52616b">Generated from scripts/demo_convergence.py; tested for decreasing total distance and feature convergence.</text>
-<text x="64" y="106" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Function word "but" convergence</text>
-<text x="64" y="126" font-family="Arial, sans-serif" font-size="12" fill="#52616b">occurrences per 1k words</text>
-<line x1="64" y1="274" x2="856" y2="274" stroke="#c9d1d9" stroke-width="1"/>
-<line x1="64" y1="136" x2="64" y2="274" stroke="#c9d1d9" stroke-width="1"/>
-<polyline points="64.0,260.6 79.8,260.6 95.7,260.6 111.5,260.6 127.4,260.6 143.2,260.6 159.0,260.6 174.9,260.6 190.7,260.6 206.6,260.6 222.4,260.6 238.2,260.6 254.1,260.6 269.9,260.6 285.8,260.6 301.6,260.6 317.4,260.6 333.3,260.6 349.1,260.6 365.0,260.6 380.8,260.6 396.6,260.6 412.5,260.6 428.3,260.6 444.2,260.6 460.0,260.6 475.8,260.6 491.7,260.6 507.5,260.6 523.4,260.6 539.2,260.6 555.0,260.6 570.9,260.6 586.7,260.6 602.6,260.6 618.4,260.6 634.2,260.6 650.1,260.6 665.9,260.6 681.8,260.6 697.6,260.6 713.4,260.6 729.3,260.6 745.1,260.6 761.0,260.6 776.8,260.6 792.6,260.6 808.5,260.6 824.3,260.6 840.2,260.6 856.0,260.6" fill="none" stroke="#64748b" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,260.6 79.8,260.6 95.7,260.6 111.5,260.6 127.4,260.6 143.2,260.6 159.0,260.6 174.9,260.6 190.7,260.6 206.6,260.6 222.4,260.6 238.2,260.6 254.1,260.6 269.9,260.6 285.8,260.6 301.6,260.6 317.4,260.6 333.3,260.6 349.1,260.6 365.0,260.6 380.8,260.6 396.6,260.6 412.5,260.6 428.3,260.6 444.2,260.6 460.0,260.6 475.8,260.6 491.7,260.6 507.5,260.6 523.4,260.6 539.2,260.6 555.0,260.6 570.9,260.6 586.7,260.6 602.6,260.6 618.4,260.6 634.2,260.6 650.1,260.6 665.9,260.6 681.8,260.6 697.6,260.6 713.4,260.6 729.3,260.6 745.1,260.6 761.0,260.6 776.8,260.6 792.6,260.6 808.5,260.6 824.3,260.6 840.2,260.6 856.0,260.6" fill="none" stroke="#7c3aed" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,260.6 79.8,260.6 95.7,260.6 111.5,260.6 127.4,260.6 143.2,260.6 159.0,260.6 174.9,196.9 190.7,196.9 206.6,197.8 222.4,198.7 238.2,149.4 254.1,149.4 269.9,149.4 285.8,150.7 301.6,159.6 317.4,160.7 333.3,160.7 349.1,161.9 365.0,214.4 380.8,214.4 396.6,214.9 412.5,215.3 428.3,260.6 444.2,260.6 460.0,260.6 475.8,260.6 491.7,219.6 507.5,181.4 523.4,184.2 539.2,186.1 555.0,187.4 570.9,156.8 586.7,159.2 602.6,160.0 618.4,160.0 634.2,162.2 650.1,162.2 665.9,163.7 681.8,164.4 697.6,165.1 713.4,196.9 729.3,197.4 745.1,197.4 761.0,197.8 776.8,167.1 792.6,169.1 808.5,170.9 824.3,172.7 840.2,173.9 856.0,175.6" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="64.0,175.6 79.8,175.6 95.7,175.6 111.5,175.6 127.4,175.6 143.2,175.6 159.0,175.6 174.9,175.6 190.7,175.6 206.6,175.6 222.4,175.6 238.2,175.6 254.1,175.6 269.9,175.6 285.8,175.6 301.6,175.6 317.4,175.6 333.3,175.6 349.1,175.6 365.0,175.6 380.8,175.6 396.6,175.6 412.5,175.6 428.3,175.6 444.2,175.6 460.0,175.6 475.8,175.6 491.7,175.6 507.5,175.6 523.4,175.6 539.2,175.6 555.0,175.6 570.9,175.6 586.7,175.6 602.6,175.6 618.4,175.6 634.2,175.6 650.1,175.6 665.9,175.6 681.8,175.6 697.6,175.6 713.4,175.6 729.3,175.6 745.1,175.6 761.0,175.6 776.8,175.6 792.6,175.6 808.5,175.6 824.3,175.6 840.2,175.6 856.0,175.6" fill="none" stroke="#b45309" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="64" cy="305" r="4" fill="#64748b"/>
-<text x="74" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt only</text>
-<circle cx="252" cy="305" r="4" fill="#7c3aed"/>
-<text x="262" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Prompt plus "write in the style of Sherlock Holmes"</text>
-<circle cx="538" cy="305" r="4" fill="#2563eb"/>
-<text x="548" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base prompt plus Salix</text>
-<circle cx="726" cy="305" r="4" fill="#b45309"/>
-<text x="736" y="309" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Benchmark</text>
-<text x="64.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
-<text x="143.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
-<text x="222.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
-<text x="301.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
-<text x="380.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
-<text x="460.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">25</text>
-<text x="539.2" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">30</text>
-<text x="618.4" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">35</text>
-<text x="697.6" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">40</text>
-<text x="776.8" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">45</text>
-<text x="856.0" y="292" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">50</text>
+<text x="40" y="38" font-family="Arial, sans-serif" font-size="22" font-weight="700" fill="#1f2933">Deterministic metric fixture: benchmark-copy sanity check</text>
+<text x="40" y="64" font-family="Arial, sans-serif" font-size="13" fill="#52616b">50 copy steps; static illustrative comparisons; not proof of AI or Salix convergence.</text>
+<text x="40" y="86" font-family="Arial, sans-serif" font-size="12" fill="#52616b">Exact texts, SHA-256 hashes, values, and source/runtime provenance: convergence_demo.json.</text>
+<text x="64" y="132" font-family="Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2933">Function word &quot;but&quot;</text>
+<text x="64" y="152" font-family="Arial, sans-serif" font-size="12" fill="#52616b">occurrences per 1k words</text>
+<line x1="64" y1="300" x2="856" y2="300" stroke="#c9d1d9" stroke-width="1"/>
+<line x1="64" y1="162" x2="64" y2="300" stroke="#c9d1d9" stroke-width="1"/>
+<text x="56" y="304.0" font-family="Arial, sans-serif" font-size="10" text-anchor="end" fill="#52616b">0</text>
+<text x="56" y="235.0" font-family="Arial, sans-serif" font-size="10" text-anchor="end" fill="#52616b">14.18</text>
+<text x="56" y="166.0" font-family="Arial, sans-serif" font-size="10" text-anchor="end" fill="#52616b">28.35</text>
+<polyline points="64.0,300.0 79.8,300.0 95.7,300.0 111.5,300.0 127.4,300.0 143.2,300.0 159.0,300.0 174.9,300.0 190.7,300.0 206.6,300.0 222.4,300.0 238.2,300.0 254.1,300.0 269.9,300.0 285.8,300.0 301.6,300.0 317.4,300.0 333.3,300.0 349.1,300.0 365.0,300.0 380.8,300.0 396.6,300.0 412.5,300.0 428.3,300.0 444.2,300.0 460.0,300.0 475.8,300.0 491.7,300.0 507.5,300.0 523.4,300.0 539.2,300.0 555.0,300.0 570.9,300.0 586.7,300.0 602.6,300.0 618.4,300.0 634.2,300.0 650.1,300.0 665.9,300.0 681.8,300.0 697.6,300.0 713.4,300.0 729.3,300.0 745.1,300.0 761.0,300.0 776.8,300.0 792.6,300.0 808.5,300.0 824.3,300.0 840.2,300.0 856.0,300.0" fill="none" stroke="#64748b" data-series-id="base_example" data-available="true" stroke-dasharray="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Base example (static): start 0.0, end 0.0</title></polyline>
+<polyline points="64.0,300.0 79.8,300.0 95.7,300.0 111.5,300.0 127.4,300.0 143.2,300.0 159.0,300.0 174.9,300.0 190.7,300.0 206.6,300.0 222.4,300.0 238.2,300.0 254.1,300.0 269.9,300.0 285.8,300.0 301.6,300.0 317.4,300.0 333.3,300.0 349.1,300.0 365.0,300.0 380.8,300.0 396.6,300.0 412.5,300.0 428.3,300.0 444.2,300.0 460.0,300.0 475.8,300.0 491.7,300.0 507.5,300.0 523.4,300.0 539.2,300.0 555.0,300.0 570.9,300.0 586.7,300.0 602.6,300.0 618.4,300.0 634.2,300.0 650.1,300.0 665.9,300.0 681.8,300.0 697.6,300.0 713.4,300.0 729.3,300.0 745.1,300.0 761.0,300.0 776.8,300.0 792.6,300.0 808.5,300.0 824.3,300.0 840.2,300.0 856.0,300.0" fill="none" stroke="#7c3aed" data-series-id="style_example" data-available="true" stroke-dasharray="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Style example (static): start 0.0, end 0.0</title></polyline>
+<polyline points="64.0,200.7 79.8,200.7 95.7,200.7 111.5,200.7 127.4,200.7 143.2,200.7 159.0,200.7 174.9,200.7 190.7,200.7 206.6,200.7 222.4,200.7 238.2,200.7 254.1,200.7 269.9,200.7 285.8,200.7 301.6,200.7 317.4,200.7 333.3,200.7 349.1,200.7 365.0,200.7 380.8,200.7 396.6,200.7 412.5,200.7 428.3,200.7 444.2,200.7 460.0,200.7 475.8,200.7 491.7,200.7 507.5,200.7 523.4,200.7 539.2,200.7 555.0,200.7 570.9,200.7 586.7,200.7 602.6,200.7 618.4,200.7 634.2,200.7 650.1,200.7 665.9,200.7 681.8,200.7 697.6,200.7 713.4,200.7 729.3,200.7 745.1,200.7 761.0,200.7 776.8,200.7 792.6,200.7 808.5,200.7 824.3,200.7 840.2,200.7 856.0,200.7" fill="none" stroke="#0f766e" data-series-id="salix_inspired_example" data-available="true" stroke-dasharray="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Salix-inspired (static): start 20.4082, end 20.4082</title></polyline>
+<polyline points="64.0,300.0 79.8,300.0 95.7,300.0 111.5,300.0 127.4,300.0 143.2,300.0 159.0,300.0 174.9,229.5 190.7,229.5 206.6,230.5 222.4,231.5 238.2,176.8 254.1,176.8 269.9,176.8 285.8,178.3 301.6,188.1 317.4,189.4 333.3,189.4 349.1,190.6 365.0,248.8 380.8,248.8 396.6,249.3 412.5,249.8 428.3,300.0 444.2,300.0 460.0,300.0 475.8,300.0 491.7,254.5 507.5,212.3 523.4,215.4 539.2,217.5 555.0,218.9 570.9,185.0 586.7,187.7 602.6,188.5 618.4,188.5 634.2,191.0 650.1,191.0 665.9,192.6 681.8,193.4 697.6,194.2 713.4,229.5 729.3,230.0 745.1,230.0 761.0,230.5 776.8,196.4 792.6,198.6 808.5,200.7 824.3,202.7 840.2,203.9 856.0,205.8" fill="none" stroke="#2563eb" data-series-id="copy_fixture" data-available="true" stroke-dasharray="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Copy fixture (deterministic): start 0.0, end 19.3548</title></polyline>
+<polyline points="64.0,205.8 79.8,205.8 95.7,205.8 111.5,205.8 127.4,205.8 143.2,205.8 159.0,205.8 174.9,205.8 190.7,205.8 206.6,205.8 222.4,205.8 238.2,205.8 254.1,205.8 269.9,205.8 285.8,205.8 301.6,205.8 317.4,205.8 333.3,205.8 349.1,205.8 365.0,205.8 380.8,205.8 396.6,205.8 412.5,205.8 428.3,205.8 444.2,205.8 460.0,205.8 475.8,205.8 491.7,205.8 507.5,205.8 523.4,205.8 539.2,205.8 555.0,205.8 570.9,205.8 586.7,205.8 602.6,205.8 618.4,205.8 634.2,205.8 650.1,205.8 665.9,205.8 681.8,205.8 697.6,205.8 713.4,205.8 729.3,205.8 745.1,205.8 761.0,205.8 776.8,205.8 792.6,205.8 808.5,205.8 824.3,205.8 840.2,205.8 856.0,205.8" fill="none" stroke="#b45309" data-series-id="benchmark" data-available="true" stroke-dasharray="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><title>Benchmark (4x excerpt): start 19.3548, end 19.3548</title></polyline>
+<circle cx="64" cy="334" r="4" fill="#64748b"/>
+<text x="74" y="338" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Base example (static)</text>
+<circle cx="334" cy="334" r="4" fill="#7c3aed"/>
+<text x="344" y="338" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Style example (static)</text>
+<circle cx="604" cy="334" r="4" fill="#0f766e"/>
+<text x="614" y="338" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Salix-inspired (static)</text>
+<circle cx="64" cy="356" r="4" fill="#2563eb"/>
+<text x="74" y="360" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Copy fixture (deterministic)</text>
+<circle cx="334" cy="356" r="4" fill="#b45309"/>
+<text x="344" y="360" font-family="Arial, sans-serif" font-size="11" fill="#1f2933">Benchmark (4x excerpt)</text>
+<text x="460.0" y="389" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">Deterministic copy step (not a recursive edit)</text>
+<text x="64.0" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">0</text>
+<text x="143.2" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">5</text>
+<text x="222.4" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">10</text>
+<text x="301.6" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">15</text>
+<text x="380.8" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">20</text>
+<text x="460.0" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">25</text>
+<text x="539.2" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">30</text>
+<text x="618.4" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">35</text>
+<text x="697.6" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">40</text>
+<text x="776.8" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">45</text>
+<text x="856.0" y="318" font-family="Arial, sans-serif" font-size="11" text-anchor="middle" fill="#52616b">50</text>
 </svg>

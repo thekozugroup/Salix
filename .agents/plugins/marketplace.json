@@ -1,0 +1,9 @@
+{
+  "name": "kozu-writing",
+  "plugins": [{
+    "name": "salix",
+    "source": {"source": "local", "path": "./"},
+    "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+    "category": "Productivity"
+  }]
+}

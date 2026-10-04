@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "salix-skill"
-version = "0.9.0"
-description = "Personal writing-style fingerprinting and iterative rewrite skill for Claude Code."
+version = "0.10.0"
+description = "Personal writing-style fingerprinting skill and plugin for Claude Code and Codex."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "thekozugroup", email = "thekozugroup@gmail.com" }]
