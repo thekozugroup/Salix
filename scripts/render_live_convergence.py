@@ -55,7 +55,7 @@ def render_svg(charts: list[dict], attempts: int, subtitle: str) -> str:
                          'Not measured: requires a spaCy English model. No match is implied.</text>')
             continue
         series = chart["series"]
-        values = [value for item in series for value in item["values"]]
+        values = [value for item in series for value in item["values"] if value is not None]
         if not values or not all(type(value) in (int, float) and math.isfinite(value) for value in values):
             raise ValueError("Charts require finite recorded measurements.")
         if any(len(item["values"]) != attempts + 1 for item in series):
@@ -71,19 +71,30 @@ def render_svg(charts: list[dict], attempts: int, subtitle: str) -> str:
                 f'<text x="{x - 8}" y="{py + 4:.2f}" font-size="10" text-anchor="end" fill="#53616f">{value:.4g}</text>',
             ])
         for item in series:
-            points = " ".join(
-                f'{x + step * plot_width / max(attempts, 1):.2f},'
-                f'{y + plot_height - (value - low) * plot_height / (high - low):.2f}'
-                for step, value in enumerate(item["values"])
-            )
+            segments, points = [], []
+            for step, value in enumerate(item["values"]):
+                if value is None:
+                    if points:
+                        segments.append(points)
+                    points = []
+                    continue
+                points.append(f'{x + step * plot_width / max(attempts, 1):.2f},'
+                              f'{y + plot_height - (value - low) * plot_height / (high - low):.2f}')
+            if points:
+                segments.append(points)
             color = COLORS[item["id"]]
             dash = "4 4" if item["id"] in {"base", "style", "benchmark"} else "none"
             weight = "1.25" if item["id"] == "candidate" else "2.3"
-            parts.append(f'<polyline data-series-id="{item["id"]}" points="{points}" '
-                         f'fill="none" stroke="{color}" stroke-width="{weight}" '
-                         f'stroke-dasharray="{dash}" stroke-linejoin="round">'
-                         f'<title>{escape(item["label"])}: {item["values"][0]} to '
-                         f'{item["values"][-1]}</title></polyline>')
+            for segment in segments:
+                coordinates = " ".join(segment)
+                parts.append(f'<polyline data-series-id="{item["id"]}" points="{coordinates}" '
+                             f'fill="none" stroke="{color}" stroke-width="{weight}" '
+                             f'stroke-dasharray="{dash}" stroke-linejoin="round">'
+                             f'<title>{escape(item["label"])}: {item["values"][0]} to '
+                             f'{item["values"][-1]}</title></polyline>')
+                if len(segment) == 1:
+                    cx, cy = segment[0].split(",")
+                    parts.append(f'<circle cx="{cx}" cy="{cy}" r="2" fill="{color}"/>')
         ticks = sorted({0, attempts, *range(0, attempts + 1, max(1, math.ceil(attempts / 10)))})
         for step in ticks:
             px = x + step * plot_width / max(attempts, 1)
@@ -147,7 +158,9 @@ def prepare_charts(payload: dict) -> tuple[list[dict], int, str]:
     specifications.insert(1, {"feature": "heldout_distance", "title": "Distance to held-out profile",
                               "kind": "distance", "unit": "held-out scores do not rank edits; lower is closer"})
 
-    def value(call_index: int, chart: dict) -> float:
+    def value(call_index: int | None, chart: dict) -> float | None:
+        if call_index is None:
+            return None
         feature = chart["feature"]
         if feature == "total_distance":
             return calls[call_index]["training_distance"]

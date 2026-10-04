@@ -14,6 +14,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -41,7 +42,7 @@ STYLE_PROMPT = BASE_PROMPT + " Write in the style of Arthur Conan Doyle's Sherlo
 LIMITATIONS = [
     "One model, one fictional prompt, one author and book, and one run: not a general performance estimate.",
     "A controlled Salix-feedback harness, not a test of automatic host skill selection.",
-    "Held-out passages never enter prompts, feedback, or score-based selection.",
+    "Held-out scores never enter prompts, feedback, or numerical edit ranking. Both corpus splits veto exact phrase overlap.",
     "Lexical copying and factual token checks are mechanical screens, not semantic or originality proof.",
     "Model pretraining may include the book; an eight-word overlap screen cannot exclude paraphrased memorization.",
     "Fifty attempts exceed the production skill's normal plateau limit to expose metric over-optimization.",
@@ -55,9 +56,15 @@ def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+@contextmanager
 def fallback_metrics():
-    return patch.multiple(stats_module, _SPACY_LOAD_ATTEMPTED=True, _SPACY_NLP=None,
-                          _PYPHEN_ATTEMPTED=True, _PYPHEN_DIC=None)
+    stats_module.estimate_syllables.cache_clear()
+    try:
+        with patch.multiple(stats_module, _SPACY_LOAD_ATTEMPTED=True, _SPACY_NLP=None,
+                            _PYPHEN_ATTEMPTED=True, _PYPHEN_DIC=None):
+            yield
+    finally:
+        stats_module.estimate_syllables.cache_clear()
 
 
 def select_corpus(source: str) -> dict:
@@ -88,6 +95,7 @@ def select_corpus(source: str) -> dict:
 
 
 def phrases(text: str, length: int = 8) -> set[tuple[str, ...]]:
+    text = text.translate(str.maketrans({"’": "'", "‘": "'", "`": "'"}))
     words = re.findall(r"[a-z]+(?:'[a-z]+)?", text.lower())
     return {tuple(words[index:index + length]) for index in range(len(words) - length + 1)}
 
@@ -98,7 +106,7 @@ def screen(text: str, source_phrases: set[tuple[str, ...]]) -> list[str]:
         "client": r"\bClara Bell\b", "station": r"\bEuston\b", "departure": r"6[.:]40|six[- ]forty",
         "rain": r"\brain(?:ing)?\b", "ticket": r"\bticket\b", "newspaper": r"\bnewspaper\b",
         "fold": r"\bfold(?:ed|s|ing)?\b", "dry": r"\bdry\b", "Holmes": r"\bHolmes\b",
-        "Watson narration": r"\bI\b", "no theft": r"no (?:theft|thief)|not (?:been )?stolen|never (?:been )?stolen|nothing (?:had been |was )?stolen|no one (?:had )?stolen",
+        "Watson narration": r"\bI\b", "no theft": r"no (?:theft|thief|crime)|not (?:been )?stolen|never (?:been )?stolen|nothing (?:had been |was )?stolen|no one (?:had )?(?:stolen|stole)",
     }
     for fact, pattern in required.items():
         if not re.search(pattern, text, flags=re.IGNORECASE):
@@ -127,29 +135,73 @@ def safe_events(stdout: str) -> dict:
         item = event.get("item", {})
         if event.get("type") == "item.completed" and item.get("type") == "agent_message":
             agent_texts.append(item.get("text", ""))
-        if item.get("type") in {"command_execution", "mcp_tool_call", "web_search", "file_change"}:
+        if item and item.get("type") not in {"agent_message", "reasoning", "error"}:
             tool_events += 1
     return {"completed": completed, "usage": usages, "agent_texts": agent_texts, "tool_events": tool_events}
+
+
+def sanitized(text: str, secrets: list[str] = ()) -> str:
+    for secret in secrets:
+        text = text.replace(secret, "[REDACTED]")
+    return re.sub(r"(?:\b(?:sk-[A-Za-z0-9_-]{8,}|gh[opusr]_[A-Za-z0-9]{8,}|eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)|\bBearer\s+\S+|\b(?:api_key|access_token|password)\s*[:=]\s*[^\s,}]+)",
+                  "[REDACTED]", text, flags=re.IGNORECASE)
+
+
+class ModelCallFailure(RuntimeError):
+    def __init__(self, record: dict):
+        self.record = record
+        super().__init__(f"Codex call stopped: {record['outcome']}. Sanitized failure record retained.")
+
+
+def child_environment(home: Path) -> dict:
+    env = {key: value for key, value in os.environ.items()
+           if key in {"PATH", "LANG", "LC_ALL", "TMPDIR", "SSL_CERT_FILE", "SSL_CERT_DIR"}}
+    env.update(HOME=str(home), CODEX_HOME=str(home / ".codex"))
+    return env
 
 
 def model_call(prompt: str, binary: str, model: str, home: Path, timeout: int) -> dict:
     output = home / "response.txt"
     output.unlink(missing_ok=True)
-    env = os.environ.copy()
-    for key in ("SALIX_HOME", "SALIX_SCOPE", "SALIX_GLOBAL_HOME", "SALIX_HOOKS"):
-        env.pop(key, None)
-    env.update(HOME=str(home), CODEX_HOME=str(home / ".codex"))
+    env = child_environment(home)
+    secrets = [value for key, value in os.environ.items()
+               if re.search(r"KEY|TOKEN|SECRET|PASSWORD", key, flags=re.IGNORECASE) and len(value) >= 8]
     command = [binary, "exec", "--ignore-user-config", "--ephemeral", "--skip-git-repo-check",
                "--sandbox", "read-only", "-C", str(home / "project"), "-m", model,
                "-c", "model_reasoning_effort=low", "--json", "-o", str(output), "-"]
+    for feature in ("shell_tool", "unified_exec", "apps", "plugins", "remote_plugin", "multi_agent",
+                    "browser_use", "computer_use", "image_generation", "hooks", "memories", "skill_search",
+                    "code_mode_host", "in_app_browser", "workspace_dependencies"):
+        command.extend(["--disable", feature])
+    command.extend(["-c", 'web_search="disabled"'])
     started = time.monotonic()
-    result = subprocess.run(command, input=prompt, text=True, capture_output=True, env=env, timeout=timeout)
+    try:
+        result = subprocess.run(command, input=prompt, text=True, capture_output=True, env=env, timeout=timeout)
+    except (subprocess.TimeoutExpired, KeyboardInterrupt, OSError) as exc:
+        partial = getattr(exc, "stdout", None) or ""
+        if isinstance(partial, bytes):
+            partial = partial.decode("utf-8", errors="replace")
+        events = safe_events(partial)
+        text = sanitized("\n".join(events.pop("agent_texts")), secrets)
+        raise ModelCallFailure({"prompt": sanitized(prompt, secrets), "partial_text": text,
+                                "seconds": round(time.monotonic() - started, 3), "events": events,
+                                "outcome": type(exc).__name__}) from exc
     events = safe_events(result.stdout)
-    if result.returncode or not events["completed"] or not output.is_file():
-        raise RuntimeError(f"Codex call failed (exit {result.returncode}); no output accepted. Raw diagnostics not saved.")
-    text = output.read_text(encoding="utf-8").strip()
-    if text not in events["agent_texts"] or events["tool_events"]:
-        raise RuntimeError("Output does not match final agent event or a tool was used.")
+    text = output.read_text(encoding="utf-8").strip() if output.is_file() else ""
+    cleaned = sanitized(text, secrets)
+    outcome = None
+    if result.returncode or not events["completed"] or not text:
+        outcome = "incomplete_or_failed"
+    elif text not in events["agent_texts"] or events["tool_events"]:
+        outcome = "unmatched_output_or_tool_event"
+    elif cleaned != text or sanitized(prompt, secrets) != prompt:
+        outcome = "secret_redaction"
+    if outcome:
+        partial = cleaned or sanitized("\n".join(events["agent_texts"]), secrets)
+        events.pop("agent_texts")
+        raise ModelCallFailure({"prompt": sanitized(prompt, secrets), "partial_text": partial,
+                                "seconds": round(time.monotonic() - started, 3), "events": events,
+                                "outcome": outcome, "exit_code": result.returncode})
     events.pop("agent_texts")
     return {"prompt": prompt, "text": text, "sha256": sha256(text),
             "seconds": round(time.monotonic() - started, 3), "events": events}
@@ -169,17 +221,19 @@ def feedback_prompt(draft: dict, training: dict, corpus: dict) -> str:
             "public-domain samples. Preserve all fixed facts and a natural coherent story; do not "
             "optimize numbers at the cost of meaning. Do not copy any eight consecutive words from "
             "the samples. Do not insert unrelated training-story characters or events. Salix "
-            "measurements suggest these changes, but safety and readability come first:\n" +
-            json.dumps(feedback) + "\n\nTRAINING SAMPLES:\n" +
+            "measurements are advisory; safety and readability come first.\n\nTRAINING SAMPLES:\n" +
             "\n\n---\n\n".join(sample["text"] for sample in corpus["training"]) +
+            "\n\nMEASUREMENT FEEDBACK:\n" + json.dumps(feedback) +
             "\n\nDRAFT TO REVISE:\n" + draft["text"])
 
 
 def validate_payload(payload: dict) -> None:
-    if payload.get("schema_version") != 1 or payload.get("evidence_type") != "recorded_ai_feedback_experiment":
+    if payload.get("schema_version") != 2 or payload.get("evidence_type") != "recorded_ai_feedback_experiment":
         raise ValueError("Unsupported recorded experiment.")
     if payload.get("limitations") != LIMITATIONS or payload["completion"]["convergence_proven"] is not False:
         raise ValueError("Experiment limitations or convergence claims changed.")
+    if payload["prompt"] != BASE_PROMPT:
+        raise ValueError("Base prompt mismatch.")
     corpus = payload["corpus"]
     for sample in [*corpus["training"], *corpus["heldout"]]:
         if sha256(sample["text"]) != sample["sha256"]:
@@ -199,20 +253,23 @@ def validate_payload(payload: dict) -> None:
                 raise ValueError("Recorded call must complete without tools.")
         calls = payload["calls"]
         source_phrases = set().union(*(phrases(sample["text"]) for sample in corpus["training"] + corpus["heldout"]))
-        best = 0
+        if len(calls) < 2:
+            raise ValueError("Incomplete baselines; any failure records remain available.")
+        best = None if screen(calls[0]["text"], source_phrases) else 0
         if len(calls) != len(payload["iterations"]) + 1:
             raise ValueError("Calls must include two baselines and one real call per attempt.")
         for index, row in enumerate(payload["iterations"]):
             candidate = 0 if index == 0 else index + 1
             reasons = screen(calls[candidate]["text"], source_phrases)
-            accepted = index > 0 and not reasons and calls[candidate]["training_distance"] < calls[best]["training_distance"]
+            accepted = index > 0 and not reasons and (best is None or calls[candidate]["training_distance"] < calls[best]["training_distance"])
             if accepted:
                 best = candidate
             expected = {"iteration": index, "candidate": candidate, "retained": best,
                         "accepted": accepted, "screen_rejections": reasons}
             if row != expected:
                 raise ValueError("Selection history is inconsistent with recorded candidates.")
-            expected_prompt = BASE_PROMPT if index == 0 else feedback_prompt(calls[payload["iterations"][index - 1]["retained"]], training, corpus)
+            previous = 0 if index == 0 else payload["iterations"][index - 1]["retained"]
+            expected_prompt = BASE_PROMPT if index == 0 else feedback_prompt(calls[0 if previous is None else previous], training, corpus)
             if calls[candidate]["prompt"] != expected_prompt:
                 raise ValueError("Prompt history mismatch or held-out feedback leak.")
         if calls[1]["prompt"] != STYLE_PROMPT:
@@ -229,6 +286,8 @@ def save(path: Path, payload: dict) -> None:
 
 
 def run(args) -> dict:
+    if Path(args.out).exists():
+        raise ValueError("Output already exists. Choose a new --out path to preserve previous evidence.")
     binary = shutil.which("codex")
     auth_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
     auth = auth_home / "auth.json"
@@ -247,7 +306,7 @@ def run(args) -> dict:
         training = aggregate([analyze(sample["text"]) for sample in corpus["training"]])
         heldout = aggregate([analyze(sample["text"]) for sample in corpus["heldout"]])
         source_phrases = set().union(*(phrases(sample["text"]) for sample in corpus["training"] + corpus["heldout"]))
-        payload = {"schema_version": 1, "evidence_type": "recorded_ai_feedback_experiment",
+        payload = {"schema_version": 2, "evidence_type": "recorded_ai_feedback_experiment",
                    "started_at": datetime.now(timezone.utc).isoformat(), "prompt": BASE_PROMPT,
                    "runtime": {"provider": "OpenAI via Codex CLI", "requested_model": args.model,
                                "reasoning_effort": "low", "python": sys.version.split()[0],
@@ -256,29 +315,45 @@ def run(args) -> dict:
                    "source_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
                                      for name in ("scripts/live_convergence.py", "lib/stats.py", "lib/distance.py", "lib/function_words.py", "lib/tone.py")},
                    "limitations": list(LIMITATIONS), "corpus": corpus,
-                   "benchmarks": {"training": training, "heldout": heldout}, "calls": [], "iterations": [],
-                   "completion": {"attempts": 0, "retained": 0, "status": "running", "convergence_proven": False}}
+                   "benchmarks": {"training": training, "heldout": heldout}, "calls": [], "iterations": [], "failures": [],
+                   "completion": {"attempts": 0, "retained": None, "status": "running", "convergence_proven": False}}
+
+        def record_call(prompt: str, purpose: str, attempt: int) -> dict:
+            try:
+                return measure(model_call(prompt, binary, args.model, home, args.timeout), training, heldout)
+            except ModelCallFailure as exc:
+                payload["failures"].append({**exc.record, "purpose": purpose, "attempt": attempt})
+                payload["completion"]["status"] = "model_call_stopped"
+                save(Path(args.out), payload)
+                raise
+
+        save(Path(args.out), payload)
         for prompt in (BASE_PROMPT, STYLE_PROMPT):
-            payload["calls"].append(measure(model_call(prompt, binary, args.model, home, args.timeout), training, heldout))
+            payload["calls"].append(record_call(prompt, "baseline", 0))
+            save(Path(args.out), payload)
             print(f"Recorded baseline {len(payload['calls'])}: {payload['calls'][-1]['training_distance']}", flush=True)
-        payload["iterations"].append({"iteration": 0, "candidate": 0, "retained": 0, "accepted": False,
-                                      "screen_rejections": screen(payload["calls"][0]["text"], source_phrases)})
+        reasons = screen(payload["calls"][0]["text"], source_phrases)
+        best = None if reasons else 0
+        payload["completion"]["retained"] = best
+        payload["iterations"].append({"iteration": 0, "candidate": 0, "retained": best, "accepted": False,
+                                      "screen_rejections": reasons})
         save(Path(args.out), payload)
         for iteration in range(1, args.attempts + 1):
             best = payload["completion"]["retained"]
             candidate = len(payload["calls"])
-            record = measure(model_call(feedback_prompt(payload["calls"][best], training, corpus), binary,
-                                        args.model, home, args.timeout), training, heldout)
+            record = record_call(feedback_prompt(payload["calls"][0 if best is None else best], training, corpus),
+                                 "rewrite", iteration)
             payload["calls"].append(record)
             reasons = screen(record["text"], source_phrases)
-            accepted = not reasons and record["training_distance"] < payload["calls"][best]["training_distance"]
+            accepted = not reasons and (best is None or record["training_distance"] < payload["calls"][best]["training_distance"])
             if accepted:
                 best = candidate
             payload["iterations"].append({"iteration": iteration, "candidate": candidate, "retained": best,
                                           "accepted": accepted, "screen_rejections": reasons})
             payload["completion"].update(attempts=iteration, retained=best)
             save(Path(args.out), payload)
-            print(f"Attempt {iteration}/{args.attempts}: candidate={record['training_distance']}; retained={payload['calls'][best]['training_distance']}; accepted={accepted}; screens={reasons}", flush=True)
+            score = None if best is None else payload["calls"][best]["training_distance"]
+            print(f"Attempt {iteration}/{args.attempts}: candidate={record['training_distance']}; retained={score}; accepted={accepted}; screens={reasons}", flush=True)
         payload["completion"].update(status="attempt_budget_exhausted", completed_at=datetime.now(timezone.utc).isoformat())
         validate_payload(payload)
         save(Path(args.out), payload)

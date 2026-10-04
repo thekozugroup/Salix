@@ -40,6 +40,15 @@ class LiveChartTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "all attempted iterations"):
             render_svg([chart], 50, "Recorded run")
 
+    def test_no_eligible_draft_leaves_a_gap_instead_of_zero(self):
+        chart = self.chart(2)
+        chart["series"][1]["values"] = [None, 0.5, None]
+        root = ET.fromstring(render_svg([chart], 2, "Three observations"))
+        retained = [line for line in root.findall(".//{http://www.w3.org/2000/svg}polyline")
+                    if line.attrib["data-series-id"] == "retained"]
+        self.assertEqual(len(retained), 1)
+        self.assertEqual(len(retained[0].attrib["points"].split()), 1)
+
     def test_nonfinite_or_boolean_values_cannot_be_drawn(self):
         for value in (math.nan, math.inf, -math.inf, True):
             with self.subTest(value=value):
