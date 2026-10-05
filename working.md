@@ -36,7 +36,15 @@
 - Original 16-attempt harness is archived with its audit stop, original selection
   history, and disclosed unrecorded interruption. Six harness findings are fixed
   and regression-tested in the separate completed run.
-- Final evidence/docs commit, exact-commit rebuild, and release verification pending.
+- Evidence/docs committed and pushed as a27448c. Its full GitHub CI passed:
+  https://github.com/thekozugroup/Salix/actions/runs/37245213616
+- Release v0.10.0 published from that exact commit. The release workflow passed:
+  https://github.com/thekozugroup/Salix/actions/runs/37245488902
+- Downloaded all five release archives and SHA256SUMS. Every digest passes and
+  matches the local build byte-for-byte. Extracted skill doctor/status and
+  the baseline helper run independently of the checkout.
+- Fresh real GitHub install/removal and installed diagnostics pass in a temporary
+  home, with updated references matching main. No user host settings changed.
 - Do not touch unrelated untracked .a5c/ files.
 
 ## Quality Gates
@@ -51,8 +59,8 @@
 
 ## Remaining Work
 
-- Commit/push the final evidence/docs and verify exact committed state.
-- Publish release assets only after checks of the committed revision.
+- Final handoff-only commit records completed publication. No runtime or bundle
+  inputs differ from the verified release; recheck main CI after that commit.
 - Broaden real writing evaluation across authors, prompts, genres, and repeated
   model samples. Calibrate style evidence separately from semantic quality.
   Neither the completed run nor the archived copy fixture proves full convergence.
